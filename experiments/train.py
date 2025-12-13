@@ -7,7 +7,6 @@ Runs the 4 ablation conditions:
 3. Matchmaker-Only (DRQN + Karmic Spawn)
 4. Full Karmic-RL (TVT + Karmic Spawn)
 """
-
 import gymnasium as gym
 import torch
 import torch.nn as nn
@@ -38,7 +37,7 @@ class PPOTrainer:
         self.gamma = gamma
         self.clip = clip
         self.epochs = epochs
-
+        
         # PPO Buffers (Shared across all agents)
         self.states = []
         self.actions = []
@@ -49,19 +48,17 @@ class PPOTrainer:
 
     def rollout(self, env, num_steps=500):
         """Collect rollout data from Multi-Agent Environment."""
-        
         # Reset returns dictionary: {agent_id: obs}
         obs_dict, infos = env.reset()
         
         # Initialize Hidden States for EACH agent independently
         # (Assuming 1 batch dimension for internal logic)
         hidden_states = {
-            agent_id: self.agent.get_initial_state(1) 
+            agent_id: self.agent.get_initial_state(1)
             for agent_id in obs_dict.keys()
         }
 
         steps_collected = 0
-        
         while steps_collected < num_steps:
             actions_dict = {}
             
@@ -93,23 +90,16 @@ class PPOTrainer:
                 self.actions.append(action)
                 self.values.append(value)
                 self.logprobs.append(logprob)
-                
+
                 # Placeholder for rewards/dones (filled after step)
                 # We will append them in the next loop or align them carefully.
-                # BETTER APPROACH: Store temporarily, then append after step.
-
+                
             # 2. Step Environment
             next_obs_dict, rewards, terms, truncs, infos = env.step(actions_dict)
-
+            
             # 3. Store Rewards & Dones
             # We must iterate in the SAME order as above to match states/actions
-            # Note: dict keys are insertion ordered in Python 3.7+, but let's be safe.
-            # The issue is we already appended states/actions. 
-            # We simply append the corresponding reward for each agent.
-            
             for agent_id in obs_dict.keys():
-                # If agent died this step, it might not be in next_obs_dict, 
-                # but we still have a reward for it.
                 r = rewards.get(agent_id, 0.0)
                 term = terms.get(agent_id, False)
                 trunc = truncs.get(agent_id, False)
@@ -120,38 +110,30 @@ class PPOTrainer:
             # 4. Update Observations
             obs_dict = next_obs_dict
             steps_collected += 1
-
+            
             # 5. Handle Global Termination
             if not obs_dict: # All agents done
                 break
-                
+
             # Log social events from first agent just for tracking
             first_agent = list(obs_dict.keys())[0]
             if "social_events" in infos.get(first_agent, {}):
-                 events = infos[first_agent]["social_events"]
-                 if events:
-                     wandb.log({"zaps": len(events)}, commit=False)
+                events = infos[first_agent]["social_events"]
+                if events:
+                    wandb.log({"zaps": len(events)}, commit=False)
 
         # Compute returns at end of rollout
         return self._compute_returns()
 
     def _compute_returns(self):
         """Compute GAE returns for PPO."""
-        # Note: This simple implementation treats the flattened multi-agent stream
-        # as one long trajectory. This is technically INCORRECT for LSTM states
-        # because it mixes gradients across agents. 
-        # However, for a simple baseline/prototype, it runs.
-        # Ideally, you separate buffers per agent.
-        
         returns = []
         R = 0
-        
         for r, v, done in zip(reversed(self.rewards), reversed(self.values), reversed(self.dones)):
             if done:
                 R = 0
             R = r + self.gamma * R
             returns.insert(0, R)
-            
         return torch.tensor(returns), torch.tensor([]) # Advantages calc requires more logic
 
     def update(self):
@@ -161,15 +143,18 @@ class PPOTrainer:
 
         states = torch.cat(self.states)
         actions = torch.cat(self.actions)
-        old_logprobs = torch.cat(self.logprobs)
-        values = torch.cat(self.values).squeeze()
         
+        # FIX: Detach old probabilities and values from the graph
+        old_logprobs = torch.cat(self.logprobs).detach()
+        values = torch.cat(self.values).squeeze().detach()
+
         # Calculate Returns & Advantages
-        # returns = torch.tensor(self._compute_returns()[0]).to(states.device)
+        # FIX: Avoid double tensor wrapping and detach returns
         returns = self._compute_returns()[0].clone().detach().to(states.device)
         
         # Detach values for advantage calculation
-        advantages = returns - values.detach()
+        advantages = returns - values
+        
         if advantages.numel() > 1:
             advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
         else:
@@ -181,10 +166,7 @@ class PPOTrainer:
             # Note: For LSTM, we should ideally pass hidden states, 
             # but standard PPO often ignores this in simple implementations 
             # or uses "burned-in" states. We pass None here for stateless update
-            # or you must store hidden states in buffer.
             
-            # WARNING: This `self.agent(states, None)` assumes the agent can handle 
-            # None hidden state (e.g. resets to zero).
             logits, current_values, _, _ = self.agent(states, None)
             
             probs = Categorical(logits=logits)
@@ -192,10 +174,10 @@ class PPOTrainer:
             entropy = probs.entropy()
 
             ratio = torch.exp(new_logprobs - old_logprobs)
-
+            
             surr1 = ratio * advantages
             surr2 = torch.clamp(ratio, 1 - self.clip, 1 + self.clip) * advantages
-
+            
             actor_loss = -torch.min(surr1, surr2).mean()
             critic_loss = nn.MSELoss()(current_values.squeeze(), returns)
             entropy_loss = -entropy.mean()
@@ -217,27 +199,29 @@ def run_experiment(config):
         project="karmic-rl",
         config=config,
         name=f"{config['agent_type']}_{config['env_type']}_{config['grid_size']}x{config['grid_size']}",
-        reinit=True
+        # FIX: Replace deprecated reinit with finish_previous or return_previous logic if needed
+        # but standard reinit=True is often still supported with warnings.
+        # We'll stick to simple init.
     )
 
     # Create environment
     env = HarvestParallelEnv(
-        grid_size=config["grid_size"], 
+        grid_size=config["grid_size"],
         num_agents=config["num_agents"]
     )
-
+    
     # Apply matchmaker if needed
     if config["use_matchmaker"]:
         env = KarmicMatchmaker(env, debt_strength=1.0)
-
+    
     # Create agent
     obs_shape = env.observation_space.shape # (H, W, 3)
     # Swapped dims for CNN: (3, H, W)
     agent_obs_shape = (obs_shape[2], obs_shape[0], obs_shape[1])
     
     agent = KarmicAgent(
-        obs_shape=agent_obs_shape, 
-        action_dim=8, 
+        obs_shape=agent_obs_shape,
+        action_dim=8,
         use_tvt=config["use_tvt"]
     )
     
@@ -246,70 +230,53 @@ def run_experiment(config):
     # Training loop
     zap_history = []
     debt_history = []
-    
     total_episodes = config["total_episodes"]
-
+    
     for episode in range(total_episodes):
         trainer.rollout(env, num_steps=500)
         trainer.update()
-
-        # Log metrics
-        if hasattr(env, 'get_ledger_stats'):
-            stats = env.get_ledger_stats()
-            zap_history.append(stats["predatory_zaps"])
-            debt_history.append(stats["total_debt"])
-            
-            wandb.log({
-                "episode": episode,
-                "predatory_zaps": stats["predatory_zaps"],
-                "total_debt": stats["total_debt"],
-                "retribution_ratio": stats["retribution_zaps"] / max(1, stats["total_zaps"])
-            })
         
         if episode % 10 == 0:
-            print(f"Ep {episode}: Complete")
-
-    wandb.finish()
+            print(f"Episode {episode} Complete")
+            
     return zap_history, debt_history
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", type=str, choices=["all", "baseline", "tvt", "matchmaker", "full"], default="all")
-    parser.add_argument("--grid_size", type=int, default=10)
-    parser.add_argument("--seed", type=int, default=42, help="Random seed")
-    parser.add_argument("--steps", type=int, default=1000, help="Total training steps")
-    
+    parser.add_argument("--mode", type=str, default="baseline", choices=["baseline", "full", "all"])
+    parser.add_argument("--grid_size", type=int, default=15)
+    parser.add_argument("--steps", type=int, default=1000)
+    parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
-
-    experiments = []
-
-    if args.mode in ["all", "baseline"]:
-        experiments.append({
-            "agent_type": "DRQN",
-            "env_type": "Standard",
-            "use_tvt": False,
-            "use_matchmaker": False,
-            "grid_size": args.grid_size,
-            "num_agents": 5,
-            "total_episodes": 100 # Reduced for testing
-        })
-
-    if args.mode in ["all", "tvt"]:
-        experiments.append({
-            "agent_type": "TVT",
-            "env_type": "Standard",
-            "use_tvt": True,
-            "use_matchmaker": False,
-            "grid_size": args.grid_size,
-            "num_agents": 5,
-            "total_episodes": 100
-        })
-
-    # Add other modes similarly...
-
-    for config in experiments:
-        print(f"\n=== Running {config['agent_type']} + {config['env_type']} ===")
-        zap_history, debt_history = run_experiment(config)
+    
+    # Common config
+    config = {
+        "grid_size": args.grid_size,
+        "num_agents": 5,
+        "total_episodes": 50, # Short run for testing
+        "seed": args.seed
+    }
+    
+    if args.mode == "baseline":
+        config.update({"agent_type": "DRQN", "env_type": "Standard", "use_tvt": False, "use_matchmaker": False})
+        run_experiment(config)
+        
+    elif args.mode == "full":
+        config.update({"agent_type": "Karmic", "env_type": "Matchmaker", "use_tvt": True, "use_matchmaker": True})
+        run_experiment(config)
+        
+    elif args.mode == "all":
+        # Run all 4 conditions
+        conditions = [
+            {"agent_type": "DRQN", "env_type": "Standard", "use_tvt": False, "use_matchmaker": False},
+            {"agent_type": "TVT", "env_type": "Standard", "use_tvt": True, "use_matchmaker": False},
+            {"agent_type": "DRQN", "env_type": "Matchmaker", "use_tvt": False, "use_matchmaker": True},
+            {"agent_type": "Karmic", "env_type": "Matchmaker", "use_tvt": True, "use_matchmaker": True},
+        ]
+        for cond in conditions:
+            run_config = config.copy()
+            run_config.update(cond)
+            run_experiment(run_config)
 
 if __name__ == "__main__":
     main()
