@@ -134,9 +134,10 @@ def run_experiment(config):
     )
     
     # Create environment
-    env = gym.make("KarmicHarvest-v0", 
-                   grid_size=config["grid_size"], 
-                   num_agents=config["num_agents"])
+    # env = gym.make("KarmicHarvest-v0", 
+    #                grid_size=config["grid_size"], 
+    #                num_agents=config["num_agents"])
+    env = HarvestParallelEnv(grid_size=config["grid_size"], num_agents=config["num_agents"])
     
     # Apply matchmaker if needed
     if config["use_matchmaker"]:
