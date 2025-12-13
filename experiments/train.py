@@ -165,7 +165,8 @@ class PPOTrainer:
         values = torch.cat(self.values).squeeze()
         
         # Calculate Returns & Advantages
-        returns = torch.tensor(self._compute_returns()[0]).to(states.device)
+        # returns = torch.tensor(self._compute_returns()[0]).to(states.device)
+        returns = self._compute_returns()[0].clone().detach().to(states.device)
         
         # Detach values for advantage calculation
         advantages = returns - values.detach()

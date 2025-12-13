@@ -104,8 +104,16 @@ class KarmicAgent(nn.Module):
             lstm_input = visual_feats
 
         # 3. Update Brain (LSTM)
-        hx, cx = lstm_state
-        
+        # hx, cx = lstm_state
+        # 3. Update Brain (LSTM)
+        if lstm_state is None:
+            # Initialize zero state if None is passed (e.g. during PPO update)
+            hx, cx = self.get_initial_state(batch_size)
+            hx = hx.to(visual_feats.device)
+            cx = cx.to(visual_feats.device)
+        else:
+            hx, cx = lstm_state
+
         # Handle resets (if done, zero out state)
         # if done_mask is not None:
         #     hx = hx * (1 - done_mask)
