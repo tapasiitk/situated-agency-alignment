@@ -1,0 +1,5 @@
+wandb
+torch>=2.0
+pettingzoo[all]
+gymnasium
+numpy
