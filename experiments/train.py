@@ -178,6 +178,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, choices=["all", "baseline", "tvt", "matchmaker", "full"], default="all")
     parser.add_argument("--grid_size", type=int, default=20)
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--steps", type=int, default=100000, help="Total training steps")
     args = parser.parse_args()
     
     experiments = []
