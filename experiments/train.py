@@ -20,6 +20,7 @@ import karmic_rl.envs
 from karmic_rl.envs.matchmaker_wrapper import KarmicMatchmaker
 from karmic_rl.agents.ktvt_agent import KarmicAgent
 import yaml
+from karmic_rl.envs.harvest_parallel import HarvestParallelEnv
 
 # If running from root:
 with open("configs/env_harvest.yaml", "r") as f:
