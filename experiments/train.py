@@ -19,6 +19,11 @@ from pathlib import Path
 import karmic_rl.envs
 from karmic_rl.envs.matchmaker_wrapper import KarmicMatchmaker
 from karmic_rl.agents.ktvt_agent import KarmicAgent
+import yaml
+
+# If running from root:
+with open("configs/env_harvest.yaml", "r") as f:
+    config = yaml.safe_load(f)
 
 class PPOTrainer:
     def __init__(self, agent, lr=3e-4, gamma=0.99, clip=0.2, epochs=4):
