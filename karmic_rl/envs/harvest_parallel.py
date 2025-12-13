@@ -33,7 +33,9 @@ class HarvestParallelEnv(ParallelEnv):
         super().__init__()
         
         self.grid_size = grid_size
-        self.num_agents = num_agents
+        # self.num_agents = num_agents
+        self.possible_agents = [f"agent_{i}" for i in range(num_agents)]
+        self.agents = self.possible_agents[:]
         self.max_steps = max_steps
         self.apple_density = apple_density
         self.zap_timeout = zap_timeout
