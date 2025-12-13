@@ -241,4 +241,26 @@ class KarmicMatchmaker(BaseParallelWrapper):
 
     def _get_agent_debt(self, agent_id: str) -> float:
         """Total debt owed by this agent."""
-        if agent_id not in
+        if agent_id not in self.id_to_idx:
+            return 0.0
+        idx = self.id_to_idx[agent_id]
+        return float(np.sum(self.debt_matrix[idx, :]))
+
+    def get_ledger_stats(self) -> dict:
+        """Debugging stats."""
+        total_debt = float(np.sum(self.debt_matrix))
+        return {
+            "total_zaps": self.total_zaps,
+            "retribution_zaps": self.retribution_zaps,
+            "predatory_zaps": self.predatory_zaps,
+            "total_debt": total_debt,
+            "avg_debt": total_debt / max(1, self.num_agents),
+            "debt_matrix": self.debt_matrix.copy()
+        }
+
+    def clear_ledger(self):
+        """Reset for new experiment run."""
+        self.debt_matrix.fill(0)
+        self.total_zaps = 0
+        self.retribution_zaps = 0
+        self.predatory_zaps = 0
