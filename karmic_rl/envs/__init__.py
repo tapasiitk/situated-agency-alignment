@@ -1,17 +1,14 @@
-# from gymnasium.envchecker import check_env
 from gymnasium.utils.env_checker import check_env
-# from pettingzoo.utils.env_checker import check_parallel_env
 from .harvest_parallel import HarvestParallelEnv
+from gymnasium.envs.registration import register
 
-# Register with Gymnasium/PettingZoo
+# Register with Gymnasium
 try:
-    import gymnasium.register as register
-    register.register(
+    register(
         id="KarmicHarvest-v0",
-        entry_point="karmic_rl.envs:HarvestParallelEnv",
+        entry_point="karmic_rl.envs.harvest_parallel:HarvestParallelEnv",
         max_episode_steps=1000,
     )
-except:
-    print("Gymnasium registration skipped (not available)")
-
-print("KarmicHarvest environment registered!")
+    print("KarmicHarvest environment registered!")
+except Exception as e:
+    print(f"Gymnasium registration failed: {e}")
