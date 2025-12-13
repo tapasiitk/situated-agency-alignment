@@ -16,9 +16,9 @@ import numpy as np
 import wandb
 import argparse
 from pathlib import Path
-import karmic_rl.envs
-from karmic_rl.envs.matchmaker_wrapper import KarmicMatchmaker
-from karmic_rl.agents.ktvt_agent import KarmicAgent
+import karmic-rl.envs
+from karmic-rl.envs.matchmaker_wrapper import KarmicMatchmaker
+from karmic-rl.agents.ktvt_agent import KarmicAgent
 
 class PPOTrainer:
     def __init__(self, agent, lr=3e-4, gamma=0.99, clip=0.2, epochs=4):
