@@ -1,0 +1,11 @@
+# configs/env_harvest.yaml
+
+small_village:
+  grid_size: 10
+  num_agents: 5
+  max_steps: 500
+
+big_city:
+  grid_size: 30
+  num_agents: 5
+  max_steps: 1000  # Longer episodes needed to find each other randomly
