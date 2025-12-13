@@ -107,9 +107,15 @@ class KarmicAgent(nn.Module):
         hx, cx = lstm_state
         
         # Handle resets (if done, zero out state)
+        # if done_mask is not None:
+        #     hx = hx * (1 - done_mask)
+        #     cx = cx * (1 - done_mask)
         if done_mask is not None:
-            hx = hx * (1 - done_mask)
-            cx = cx * (1 - done_mask)
+            # Ensure mask is (B, 1) to broadcast correctly across hidden dim (B, H)
+            mask_expanded = done_mask.view(-1, 1)
+            hx = hx * (1 - mask_expanded)
+            cx = cx * (1 - mask_expanded)
+
             # Also reset memory pointer for that batch item (simplified logic here)
             if done_mask.sum() > 0:
                 self.reset_memory() 

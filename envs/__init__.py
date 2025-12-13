@@ -1,5 +1,6 @@
-from gymnasium.envchecker import check_env
-from pettingzoo.utils.env_checker import check_parallel_env
+# from gymnasium.envchecker import check_env
+from gymnasium.utils.env_checker import check_env
+# from pettingzoo.utils.env_checker import check_parallel_env
 from .harvest_parallel import HarvestParallelEnv
 
 # Register with Gymnasium/PettingZoo

@@ -1,5 +1,6 @@
 from pettingzoo import ParallelEnv
-from pettingzoo.utils.agent_selector import AgentSelector
+
+import pettingzoo.utils.agent_selector as AgentSelector
 import gymnasium.spaces as spaces
 import numpy as np
 
