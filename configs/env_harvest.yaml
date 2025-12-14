@@ -13,7 +13,8 @@ big_city:
 # Add this new section to the file:
 
 scarcity_conflict:
-  grid_size: 15
-  num_agents: 5
-  max_steps: 1000
-  regrowth_speed: 0.1  # 10x Slower growth = High Scarcity
+  grid_size: 25         # Leibo used roughly 25x25 (allows territory formation)
+  num_agents: 6          # 6 agents on 24x24 is the "Sweet Spot" for conflict
+  max_steps: 1000        # Long episodes allow grudges to form
+  regrowth_speed: 0.05   # VERY SCARCE. (Half of your current 0.1)
+
