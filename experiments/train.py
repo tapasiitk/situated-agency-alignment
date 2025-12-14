@@ -236,7 +236,7 @@ def main():
     
     # 1. Config Preset Selection
     parser.add_argument("--config_preset", type=str, default="small_village", 
-                        choices=["small_village", "big_city"],
+                        choices=["small_village", "big_city", 'scarcity_conflict'],
                         help="Choose environment preset from env_harvest.yaml")
     
     parser.add_argument("--mode", type=str, default="baseline", 
