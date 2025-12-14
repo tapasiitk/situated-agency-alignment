@@ -27,8 +27,9 @@ class HarvestParallelEnv(ParallelEnv):
                  num_agents=5, 
                  max_steps=1000, 
                  apple_density=0.8,
-                 zap_timeout=25,
-                 regrowth_speed=1.0):
+                #  zap_timeout=25,
+                 zap_timeout=50,# temporarily increase the benefit to test the emergence of aggression
+                regrowth_speed=1.0):
         
         # NOTE: Do NOT call super().__init__() here if it does nothing useful 
         # or if it tries to set attributes we want to control. 
@@ -213,7 +214,8 @@ class HarvestParallelEnv(ParallelEnv):
 
         # Small cost for firing
         # rewards[attacker_id] -= 0.05 # temporary disabled to test social events
-
+        # In fact add a tiny reward as curiosity
+        rewards[attacker_id] += 0.001
         # Calculate beam path
         beam_positions = self._get_beam_path(attacker_pos, direction)
 
