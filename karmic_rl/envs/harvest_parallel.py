@@ -297,29 +297,72 @@ class HarvestParallelEnv(ParallelEnv):
              if np.random.random() < rate:
                  self.grid[r, c] = self.APPLE
 
-    def _get_obs(self, agent):
-        """Generate observation for specific agent."""
-        # Channel 0: Apples/Walls
+    # def _get_obs(self, agent):
+    #     """Generate observation for specific agent."""
+    #     # Channel 0: Apples/Walls
+    #     apple_layer = np.zeros((self.grid_size, self.grid_size), dtype=np.uint8)
+    #     apple_layer[self.grid == self.APPLE] = 128
+    #     apple_layer[self.grid == self.WALL] = 255
+
+    #     # Channel 1: Agents (visual IDs)
+    #     agent_layer = np.zeros((self.grid_size, self.grid_size), dtype=np.uint8)
+        
+    #     # Channel 2: Directions
+    #     dir_layer = np.zeros((self.grid_size, self.grid_size), dtype=np.uint8)
+
+    #     current_time = self.steps
+        
+    #     for agent_id, state in self.agent_states.items():
+    #         # Show agents even if frozen? Yes, they exist.
+    #         # But maybe visually distinct? keeping simple for now.
+    #         r, c = state["pos"]
+    #         agent_layer[r, c] = state["agent_code"]
+    #         dir_layer[r, c] = state["dir"] + 1  # 1-4 for directions, 0 for nothing
+
+    #     obs = np.stack([apple_layer, agent_layer, dir_layer], axis=-1)
+    #     return obs.astype(np.uint8)
+        def _get_obs(self, agent_id):
+        """Generate observation for specific agent with Fog of War."""
+        # 1. Base Layer: Apples & Walls
         apple_layer = np.zeros((self.grid_size, self.grid_size), dtype=np.uint8)
         apple_layer[self.grid == self.APPLE] = 128
         apple_layer[self.grid == self.WALL] = 255
 
-        # Channel 1: Agents (visual IDs)
+        # 2. Entity Layers: Agents & Directions
         agent_layer = np.zeros((self.grid_size, self.grid_size), dtype=np.uint8)
-        
-        # Channel 2: Directions
         dir_layer = np.zeros((self.grid_size, self.grid_size), dtype=np.uint8)
 
-        current_time = self.steps
-        
-        for agent_id, state in self.agent_states.items():
-            # Show agents even if frozen? Yes, they exist.
-            # But maybe visually distinct? keeping simple for now.
+        for other_id, state in self.agent_states.items():
             r, c = state["pos"]
             agent_layer[r, c] = state["agent_code"]
             dir_layer[r, c] = state["dir"] + 1  # 1-4 for directions, 0 for nothing
 
+        # Stack into (H, W, 3)
         obs = np.stack([apple_layer, agent_layer, dir_layer], axis=-1)
+
+        # 3. Apply Fog of War (Partial Observability)
+        # Get current agent position
+        my_r, my_c = self.agent_states[agent_id]["pos"]
+        
+        # Define View Radius (e.g., 5 means 11x11 view window)
+        view_radius = 5  
+        
+        # Create visibility mask
+        visible_mask = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        
+        # Calculate bounds (clamped to grid edges)
+        r_min = max(0, my_r - view_radius)
+        r_max = min(self.grid_size, my_r + view_radius + 1)
+        c_min = max(0, my_c - view_radius)
+        c_max = min(self.grid_size, my_c + view_radius + 1)
+        
+        # Set visible area to True
+        visible_mask[r_min:r_max, c_min:c_max] = True
+        
+        # Apply mask: Set everything NOT visible to 0 (Black)
+        # This broadcasts the (H, W) mask across the 3 channels
+        obs[~visible_mask] = 0 
+
         return obs.astype(np.uint8)
 
     def _spawn_initial_apples(self):
