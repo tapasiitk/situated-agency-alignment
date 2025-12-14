@@ -321,7 +321,7 @@ class HarvestParallelEnv(ParallelEnv):
 
     #     obs = np.stack([apple_layer, agent_layer, dir_layer], axis=-1)
     #     return obs.astype(np.uint8)
-        def _get_obs(self, agent_id):
+    def _get_obs(self, agent_id):
         """Generate observation for specific agent with Fog of War."""
         # 1. Base Layer: Apples & Walls
         apple_layer = np.zeros((self.grid_size, self.grid_size), dtype=np.uint8)
