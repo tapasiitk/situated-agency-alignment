@@ -240,7 +240,7 @@ def main():
                         help="Choose environment preset from env_harvest.yaml")
     
     parser.add_argument("--mode", type=str, default="baseline", 
-                        choices=["baseline", "full", "all"])
+                        choices=["baseline", "tvt", "matchmaker", "full", "all"])
     
     # 2. Experiment Duration Control
     parser.add_argument("--episodes", type=int, default=50, 
@@ -277,7 +277,14 @@ def main():
     if args.mode == "baseline":
         config.update({"agent_type": "DRQN", "env_type": "Standard", "use_tvt": False, "use_matchmaker": False})
         run_experiment(config)
-        
+    
+    elif args.mode == "tvt":  # <--- NEW
+        config.update({"agent_type": "TVT", "env_type": "Standard", "use_tvt": True, "use_matchmaker": False})
+        run_experiment(config)
+
+    elif args.mode == "matchmaker": # <--- NEW
+        config.update({"agent_type": "DRQN", "env_type": "Matchmaker", "use_tvt": False, "use_matchmaker": True})
+        run_experiment(config)
     elif args.mode == "full":
         config.update({"agent_type": "Karmic", "env_type": "Matchmaker", "use_tvt": True, "use_matchmaker": True})
         run_experiment(config)
