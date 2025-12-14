@@ -196,7 +196,9 @@ def run_experiment(config):
 
     env = HarvestParallelEnv(
         grid_size=config["grid_size"],
-        num_agents=config["num_agents"]
+        num_agents=config["num_agents"],
+        # Pass the new config value (default to 1.0 if missing)
+        regrowth_speed=config.get("regrowth_speed", 1.0)
     )
     
     if config["use_matchmaker"]:
@@ -261,6 +263,7 @@ def main():
         "grid_size": preset_config.get("grid_size", 15),
         "num_agents": preset_config.get("num_agents", 5),
         "episode_max_steps": preset_config.get("max_steps", 500), # Physics duration
+        "regrowth_speed": preset_config.get("regrowth_speed", 1.0),
         "total_episodes": args.episodes, # Experiment duration
         "seed": args.seed
     }

@@ -9,3 +9,11 @@ big_city:
   grid_size: 30
   num_agents: 5
   max_steps: 1000  # Longer episodes needed to find each other randomly
+
+# Add this new section to the file:
+
+scarcity_conflict:
+  grid_size: 15
+  num_agents: 5
+  max_steps: 1000
+  regrowth_speed: 0.1  # 10x Slower growth = High Scarcity

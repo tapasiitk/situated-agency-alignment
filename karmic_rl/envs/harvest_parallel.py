@@ -27,7 +27,8 @@ class HarvestParallelEnv(ParallelEnv):
                  num_agents=5, 
                  max_steps=1000, 
                  apple_density=0.8,
-                 zap_timeout=25):
+                 zap_timeout=25,
+                 regrowth_speed=1.0):
         
         # NOTE: Do NOT call super().__init__() here if it does nothing useful 
         # or if it tries to set attributes we want to control. 
@@ -59,7 +60,11 @@ class HarvestParallelEnv(ParallelEnv):
         )
 
         # Apple regrowth rates based on neighbor count (0-4 neighbors)
-        self.regrowth_rates = np.array([0.0, 0.005, 0.02, 0.05, 0.1])
+        # self.regrowth_rates = np.array([0.0, 0.005, 0.02, 0.05, 0.1])
+        base_rates = np.array([0.0, 0.005, 0.02, 0.05, 0.1])
+        
+        # Scale rates by the scarcity lever
+        self.regrowth_rates = base_rates * regrowth_speed
         
         # Initialize internal state placeholders
         self.grid = None
