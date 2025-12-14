@@ -212,7 +212,7 @@ class HarvestParallelEnv(ParallelEnv):
         direction = attacker_state["dir"]
 
         # Small cost for firing
-        rewards[attacker_id] -= 0.05
+        # rewards[attacker_id] -= 0.05 # temporary disabled to test social events
 
         # Calculate beam path
         beam_positions = self._get_beam_path(attacker_pos, direction)
