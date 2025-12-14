@@ -51,7 +51,7 @@ class KarmicMatchmaker(BaseParallelWrapper):
     Ablation: Set debt_strength=0.0 to disable (random spawning).
     """
     
-    def __init__(self, env, debt_strength=1.0, decay_rate=0.9):
+    def __init__(self, env, debt_strength=1.0, decay_rate=1):# changing decay_rate from 0.9 to 1
         """
         Args:
             debt_strength: How aggressively to rig spawns (0.0 = random)
