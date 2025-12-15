@@ -23,6 +23,7 @@ from torch.distributions import Categorical
 import numpy as np
 import wandb
 from collections import defaultdict
+import torch.nn.functional as F
 
 from karmic_rl.envs.harvest_dual import HarvestDualEnv
 from karmic_rl.agents.karma_agent import KarmaAgent, KARMACollector
