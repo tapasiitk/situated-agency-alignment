@@ -87,11 +87,20 @@ def train(config_path, mode, seed=42):
 
     # Agents (Parameter Sharing: Single Network)
     # We use one 'master_agent' that all agents in the env share.
+    # master_agent = KarmaAgent(
+    #     mode=mode,
+    #     contrastive_weight=config['training']['contrastive_weight']
+    # ).to(device)
+        # Agents (Parameter Sharing: Single Network)
+    grid_sz = config['env']['grid_size']
+    
     master_agent = KarmaAgent(
+        obs_shape=(3, grid_sz, grid_sz),  # <--- CRITICAL FIX: Pass dynamic shape
         mode=mode,
         contrastive_weight=config['training']['contrastive_weight']
     ).to(device)
-    
+
+
     optimizer = optim.Adam(master_agent.parameters(), lr=float(config['training']['lr']))
     
     # Buffer (Stores data for all agents mixed together)
