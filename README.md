@@ -1,18 +1,10 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
-
-# Knowledge Acquisition via Role-invariant Mirror Architecture sounds good. redraft the readme with changes
-
-Here is the final, polished `README.md`. It uses the **KARMA** acronym, reflects the **3-Condition Design**, and points to the correct **new filenames**.
-
-***
 
 # KARMA: Knowledge Acquisition via Role-invariant Mirror Architecture 🪞
 
 > **"I do not hurt you, because I know what hurting feels like."**
 > *Emergent ethical behavior in Multi-Agent RL via Role-Invariant Representation Learning.*
 
-[
-[
+
 
 ## 🧠 The Core Idea
 
@@ -76,12 +68,3 @@ If you use this code, please cite our upcoming work:
 > Rath, T. (2025). *KARMA: Scalable Ethical Alignment via Role-Invariant Representation Learning.*
 
 ***
-
-**Changes Made:**
-
-1. **Acronym:** Updated to **Knowledge Acquisition via Role-invariant Mirror Architecture**.
-2. **Filenames:** Updated to `train_karma.py`, `karma_agent.py`, `harvest_dual.py`.
-3. **Narrative:** Crisp focus on the "Mirror Test."
-
-This is ready to copy-paste. Good luck with the experiments! 🚀
-
