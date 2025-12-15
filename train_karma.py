@@ -32,24 +32,24 @@ from karmic_rl.agents.karma_agent import KarmaAgent, KARMACollector
 # ----------------------------------------------------------------
 
 # def compute_gae(rewards, values, next_value, dones, gamma=0.99, lam=0.95):
-    """
-    Generalized Advantage Estimation (GAE).
-    """
-    advantages = []
-    gae = 0
+#     """
+#     Generalized Advantage Estimation (GAE).
+#     """
+#     advantages = []
+#     gae = 0
     
-    # Iterate backwards
-    for t in reversed(range(len(rewards))):
-        if t == len(rewards) - 1:
-            next_val = next_value
-        else:
-            next_val = values[t + 1]
+#     # Iterate backwards
+#     for t in reversed(range(len(rewards))):
+#         if t == len(rewards) - 1:
+#             next_val = next_value
+#         else:
+#             next_val = values[t + 1]
             
-        delta = rewards[t] + gamma * next_val * (1 - dones[t]) - values[t]
-        gae = delta + gamma * lam * (1 - dones[t]) * gae
-        advantages.insert(0, gae)
+#         delta = rewards[t] + gamma * next_val * (1 - dones[t]) - values[t]
+#         gae = delta + gamma * lam * (1 - dones[t]) * gae
+#         advantages.insert(0, gae)
         
-    return torch.tensor(advantages, dtype=torch.float32), torch.tensor(advantages) + torch.tensor(values)
+#     return torch.tensor(advantages, dtype=torch.float32), torch.tensor(advantages) + torch.tensor(values)
 def compute_gae(rewards, values, next_value, dones, gamma=0.99, lam=0.95):
     """
     Generalized Advantage Estimation (GAE).
