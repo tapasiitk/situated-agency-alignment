@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
-[![Paper](https://img.shields.io/badge/Paper-PDF-red.svg)](./karma_paper.tex)
+[![Paper](https://img.shields.io/badge/Paper-PDF-red.svg)](./ethical_agentic_AI.pdf)
 
 ## 🧠 The Core Problem
 
@@ -16,7 +16,7 @@ Standard Deep Reinforcement Learning (DRL) agents in multi-agent environments sy
 - **"I attack a rival"** → latent vector z_agg
 - **"I am attacked"** → latent vector z_vic
 
-These representations are **perpendicular** (unrelated). Negative feedback from victimization does not modulate the policy for aggression because the agent perceives itself as existing in two separate "predator" and "prey" state spaces. We call this the **Empathy Gap**.
+These representations are **orthogonal** (unrelated). Negative feedback from victimization does not modulate the policy for aggression because the agent perceives itself as existing in two separate "predator" and "prey" state spaces. We call this the **Empathy Gap**.
 
 ## 🪞 Our Solution: KARMA
 
