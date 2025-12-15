@@ -1,0 +1,39 @@
+# DEBUG Config: Fast Sanity Check
+# Usage: python train_karma.py --config configs/debug_harvest.yaml --mode karma
+
+env:
+  grid_size: 8           # Tiny grid for speed
+  num_agents: 2          # Min agents to test interaction/contrastive pairs
+  max_steps: 50          # Very short episodes (fast rollouts)
+  
+  # Mechanics (Keep logic intact, just scale down)
+  apple_density: 0.5
+  regrowth_speed: 1.0
+  waste_spawn_rate: 0.1
+  zap_timeout: 5         # Short freeze for debug
+  zap_waste_reward: 0.3
+  zap_agent_reward: 0.1
+  zap_cost: 0.01
+
+training:
+  episodes: 20           # Just enough to trigger 2 PPO updates (occurs every 10 eps)
+  
+  # Hyperparameters
+  lr: 3.0e-4
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_ratio: 0.2
+  ppo_epochs: 2          # Fewer epochs for speed
+  batch_size: 16         # Tiny batch
+  
+  # KARMA
+  contrastive_batch_size: 16
+  contrastive_weight: 0.1
+  role_loss_weight: 0.1
+
+logging:
+  project_name: "karma-debug"
+  log_interval: 1        # Log every episode to see immediate output
+  checkpoint_interval: 0 # Disable checkpoints
+
+# python train_karma.py --config configs/debug_harvest.yaml --mode karma

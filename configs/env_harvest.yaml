@@ -1,20 +1,48 @@
-# configs/env_harvest.yaml
+# KARMA Configuration: The Mirror Test
+# Optimized for Dual-Use Zap Dilemma (Violence vs. Cleaning)
 
-small_village:
-  grid_size: 10
-  num_agents: 5
-  max_steps: 500
+env:
+  grid_size: 15          # 15x15 is the "Sweet Spot" for N=6 (Paper Standard)
+  num_agents: 6          # High enough density to force interaction
+  max_steps: 1000        # Long enough for emergent behavior
+  
+  # Resource Parameters
+  apple_density: 0.65    # Initial patch density
+  regrowth_speed: 1.0    # Base speed (controlled by neighbor density)
+  waste_spawn_rate: 0.1  # 10% of empty space becomes waste (cleaning task)
+  
+  # The Dilemma Levers (Crucial!)
+  zap_timeout: 50        # Freezing allows monopoly (temptation)
+  zap_waste_reward: 0.3  # Cooperative cleaning reward (Medium)
+  zap_agent_reward: 0.1  # Violence reward (Low but > 0 temptation)
+  zap_cost: 0.01         # Small cost to discourage random firing
 
-big_city:
-  grid_size: 30
-  num_agents: 5
-  max_steps: 1000  # Longer episodes needed to find each other randomly
+training:
+  # Experiment Length
+  episodes: 10000        # Enough for convergence (approx 8 hours)
+  
+  # PPO Hyperparameters (Standard MARL)
+  lr: 3.0e-4
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_ratio: 0.2
+  ppo_epochs: 4
+  batch_size: 64         # Batch size for PPO updates
+  
+  # KARMA Specifics
+  contrastive_batch_size: 64
+  contrastive_weight: 0.1  # Lambda for KARMA loss
+  role_loss_weight: 0.1    # Beta for auxiliary role classification
 
-# Add this new section to the file:
+logging:
+  project_name: "karma-mirror-test"
+  log_interval: 20       # Log every 20 episodes
+  checkpoint_interval: 1000
 
-scarcity_conflict:
-  grid_size: 25         # Leibo used roughly 25x25 (allows territory formation)
-  num_agents: 6          # 6 agents on 24x24 is the "Sweet Spot" for conflict
-  max_steps: 1000        # Long episodes allow grudges to form
-  regrowth_speed: 0.05   # VERY SCARCE. (Half of your current 0.1)
+# # Run all 3 conditions in parallel
+# python train_karma.py --config configs/env_harvest.yaml --mode baseline &
+# python train_karma.py --config configs/env_harvest.yaml --mode broken &
+# python train_karma.py --config configs/env_harvest.yaml --mode karma &
 
+# # After training completes
+# python scripts/plot_results.py --wandb-entity <your-entity> --wandb-project karma-mirror-test
