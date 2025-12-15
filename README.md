@@ -4,8 +4,7 @@
 > **"I do not hurt you, because I know what hurting feels like."**
 > *Emergent ethical behavior in Multi-Agent RL via Role-Invariant Representation Learning.*
 
-[
-[
+
 
 ## 🧠 The Core Idea
 
