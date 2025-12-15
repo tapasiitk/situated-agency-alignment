@@ -16,7 +16,7 @@ Standard Deep Reinforcement Learning (DRL) agents in multi-agent environments sy
 - **"I attack a rival"** → latent vector z_agg
 - **"I am attacked"** → latent vector z_vic
 
-These representations are **perpendicular** (unrelated). Negative feedback from victimization does not modulate the policy for aggression because the agent perceives itself as existing in two separate "predator" and "prey" state spaces. We call this the **Empathy Gap**.
+These representations are **orthogonal** (unrelated). Negative feedback from victimization does not modulate the policy for aggression because the agent perceives itself as existing in two separate "predator" and "prey" state spaces. We call this the **Empathy Gap**.
 
 ## 🪞 Our Solution: KARMA
 
