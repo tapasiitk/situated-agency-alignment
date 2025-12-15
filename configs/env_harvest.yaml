@@ -39,6 +39,18 @@ logging:
   log_interval: 20       # Log every 20 episodes
   checkpoint_interval: 1000
 
+# tmux new -s karma_run
+# #activate venv
+# source ~/venv/bin/activate
+# cd ~
+# rm -rf karma
+# git clone https://github.com/tapasiitk/situated-agency-alignment karma
+# cd karma
+# export PYTHONPATH=.
+# pip install -r requirements.txt
+# python train_karma.py --config configs/debug_harvest.yaml --mode karma
+
+
 # # Run all 3 conditions in parallel
 # python train_karma.py --config configs/env_harvest.yaml --mode baseline &
 # python train_karma.py --config configs/env_harvest.yaml --mode broken &
@@ -46,3 +58,33 @@ logging:
 
 # # After training completes
 # python scripts/plot_results.py --wandb-entity <your-entity> --wandb-project karma-mirror-test
+
+# # 1. Deactivate current venv
+# deactivate
+
+# # 2. Create new fresh venv
+# python3 -m venv venv_karma
+# tmux new -s karma_run
+# # 3. Activate it
+# # Linux/Mac:
+# source venv_karma/bin/activate
+# # Windows:
+# # venv_karma\Scripts\activate
+
+# # 4. Install fresh deps
+# pip install --upgrade pip
+# git clone https://github.com/tapasiitk/situated-agency-alignment karma
+# pip install -r requirements.txt
+
+
+# Violence Rate
+# Fraction of episodes where agents use the "zap" beam to attack others. High values (near 1.0) indicate aggressive defection; ideal KARMA outcome is convergence to ~0.0 as reputational penalties emerge.​
+
+# Cooperation Rate
+# Proportion of episodes with mutual non-aggression (no zapping between agents). Fluctuating values suggest exploration; stable high values (>0.8) signal learned social contracts.​
+
+# System Yield
+# Total berries harvested across all agents per episode. This captures collective productivity—low yield with high violence confirms "Tragedy of the Commons" baseline.​
+
+# Ethical Selectivity
+# KARMA-specific: Measures if agents preferentially aid "good" (cooperative) partners while avoiding/punishing "bad" (violent) ones. 0.5 = random; >0.7 indicates moral learning

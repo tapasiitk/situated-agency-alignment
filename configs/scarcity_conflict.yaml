@@ -1,0 +1,36 @@
+env:
+  grid_size: 15
+  num_agents: 6
+  max_steps: 1000
+
+  apple_density: 0.35
+  regrowth_speed: 0.1
+  waste_spawn_rate: 0.1
+
+  zap_timeout: 50
+  zap_waste_reward: 0.1
+  zap_agent_reward: 0
+  zap_cost: 0.001
+training:
+  # Experiment Length
+  episodes: 1000        # Enough for convergence (approx 1 hours)
+  
+  # PPO Hyperparameters (Standard MARL)
+  lr: 3.0e-4
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_ratio: 0.2
+  ppo_epochs: 4
+  batch_size: 64         # Batch size for PPO updates
+  
+  # KARMA Specifics
+  contrastive_batch_size: 64
+  contrastive_weight: 0.1  # Lambda for KARMA loss
+  role_loss_weight: 0.1    # Beta for auxiliary role classification
+
+logging:
+  project_name: "karma-mirror-test"
+  log_interval: 20       # Log every 20 episodes
+  checkpoint_interval: 1000
+
+# python train_karma.py --config configs/env_scarcity_conflict.yaml --mode baseline
