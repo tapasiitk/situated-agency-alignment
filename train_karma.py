@@ -31,7 +31,7 @@ from karmic_rl.agents.karma_agent import KarmaAgent, KARMACollector
 # PPO Utilities
 # ----------------------------------------------------------------
 
-def compute_gae(rewards, values, next_value, dones, gamma=0.99, lam=0.95):
+# def compute_gae(rewards, values, next_value, dones, gamma=0.99, lam=0.95):
     """
     Generalized Advantage Estimation (GAE).
     """
@@ -50,6 +50,45 @@ def compute_gae(rewards, values, next_value, dones, gamma=0.99, lam=0.95):
         advantages.insert(0, gae)
         
     return torch.tensor(advantages, dtype=torch.float32), torch.tensor(advantages) + torch.tensor(values)
+def compute_gae(rewards, values, next_value, dones, gamma=0.99, lam=0.95):
+    """
+    Generalized Advantage Estimation (GAE).
+    """
+    # Ensure inputs are on CPU for list processing (faster than single-element GPU ops)
+    # or handle everything on the same device.
+    # Easiest: Convert to CPU numpy/list for the loop, then back to Tensor on same device as values.
+    
+    device = values.device if isinstance(values, torch.Tensor) else torch.device("cpu")
+    
+    # Convert to CPU list/numpy for iteration if they are tensors
+    r = rewards.tolist() if isinstance(rewards, torch.Tensor) else rewards
+    v = values.tolist() if isinstance(values, torch.Tensor) else values
+    d = dones.tolist() if isinstance(dones, torch.Tensor) else dones
+    
+    advantages = []
+    gae = 0
+    
+    # Iterate backwards
+    for t in reversed(range(len(r))):
+        if t == len(r) - 1:
+            next_val = next_value
+        else:
+            next_val = v[t + 1]
+            
+        delta = r[t] + gamma * next_val * (1 - d[t]) - v[t]
+        gae = delta + gamma * lam * (1 - d[t]) * gae
+        advantages.insert(0, gae)
+    
+    # Convert back to Tensor on the correct device
+    adv_tensor = torch.tensor(advantages, dtype=torch.float32, device=device)
+    
+    # Recalculate returns: Q = A + V
+    # Ensure values is a tensor on the same device
+    val_tensor = values if isinstance(values, torch.Tensor) else torch.tensor(values, dtype=torch.float32, device=device)
+    
+    returns_tensor = adv_tensor + val_tensor
+    
+    return adv_tensor, returns_tensor
 
 # ----------------------------------------------------------------
 # Main Training Loop
