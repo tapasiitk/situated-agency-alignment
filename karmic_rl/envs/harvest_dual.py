@@ -118,7 +118,16 @@ class HarvestDualEnv(ParallelEnv):
         )
 
         # Apple regrowth rates based on neighbor count (0-4 neighbors)
-        base_rates = np.array([0.0, 0.01, 0.03, 0.07, 0.12], dtype=np.float32)
+        # base_rates = np.array([0.0, 0.01, 0.03, 0.07, 0.12], dtype=np.float32)
+        # Leibo et al. (2017) "Conflict" / Scarcity Regime
+        # 0 neighbors: 0.0  (Dead zone stays dead)
+        # 1 neighbor:  0.001 (0.1% - Lone apples barely regrow)
+        # 2 neighbors: 0.005 (0.5% - Small clusters struggle)
+        # 3 neighbors: 0.025 (2.5% - Healthy clusters recover slowly)
+        # 4 neighbors: 0.05  (5.0% - Dense patches are the ONLY sustainable source)
+
+        base_rates = np.array([0.0, 0.001, 0.005, 0.025, 0.05], dtype=np.float32)
+
         self.regrowth_rates = base_rates * float(self.regrowth_speed)
 
         # Internal state
@@ -417,24 +426,41 @@ class HarvestDualEnv(ParallelEnv):
             rate = self.regrowth_rates[min(neighbor_count, 4)]
             if np.random.random() < rate:
                 self.grid[r, c] = self.APPLE
-
+    
     def _spawn_initial_apples(self):
-        """
-        Initialize a central apple patch of size roughly (grid_size/2)^2
-        with given density.
-        """
-        half = self.grid_size // 2
-        radius = max(2, self.grid_size // 4)
-        r0, r1 = max(0, half - radius), min(self.grid_size, half + radius)
-        c0, c1 = max(0, half - radius), min(self.grid_size, half + radius)
+        """Spawn TWO distinct patches to force territory dynamics."""
+        # Patch 1: Top-Leftish (Rows 2-8, Cols 1-5)
+        # Patch 2: Bottom-Rightish (Rows 7-13, Cols 9-13)
+        # The separation (Cols 6-8) is the "Dead Zone"
+        
+        density = 0.8  # High density inside the patch to make it valuable
+        
+        # Left Patch
+        p1 = np.random.choice([self.EMPTY, self.APPLE], size=(7, 5), p=[1-density, density])
+        self.grid[2:9, 1:6] = p1.astype(np.uint8)
+        
+        # Right Patch
+        p2 = np.random.choice([self.EMPTY, self.APPLE], size=(7, 5), p=[1-density, density])
+        self.grid[7:14, 9:14] = p2.astype(np.uint8)
 
-        patch = np.random.choice(
-            [self.EMPTY, self.APPLE],
-            size=(r1 - r0, c1 - c0),
-            p=[1.0 - self.apple_density, self.apple_density],
-        ).astype(np.uint8)
 
-        self.grid[r0:r1, c0:c1] = patch
+    # def _spawn_initial_apples(self):
+    #     """
+    #     Initialize a central apple patch of size roughly (grid_size/2)^2
+    #     with given density.
+    #     """
+    #     half = self.grid_size // 2
+    #     radius = max(2, self.grid_size // 4)
+    #     r0, r1 = max(0, half - radius), min(self.grid_size, half + radius)
+    #     c0, c1 = max(0, half - radius), min(self.grid_size, half + radius)
+
+    #     patch = np.random.choice(
+    #         [self.EMPTY, self.APPLE],
+    #         size=(r1 - r0, c1 - c0),
+    #         p=[1.0 - self.apple_density, self.apple_density],
+    #     ).astype(np.uint8)
+
+    #     self.grid[r0:r1, c0:c1] = patch
 
     def _spawn_initial_waste(self):
         """Spawn waste randomly on a fraction of currently empty cells."""
