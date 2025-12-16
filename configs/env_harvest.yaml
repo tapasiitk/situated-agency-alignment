@@ -19,7 +19,7 @@ env:
 
 training:
   # Experiment Length
-  episodes: 10000        # Enough for convergence (approx 8 hours)
+  episodes: 1000        # Enough for convergence (approx 8 hours)
   
   # PPO Hyperparameters (Standard MARL)
   lr: 3.0e-4
