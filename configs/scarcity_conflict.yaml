@@ -14,7 +14,7 @@
 env:
   grid_size: 15        # Small map for speed
   num_agents: 4        # 4 agents = 2 squads of 2 (ideal for 2 patches)
-  
+  max_steps: 1000
   # Resource Config (Replication Mode)
   apple_density: 0.0   # Set to 0.0 because we will manually spawn patches in code
   regrowth_speed: 1.0  # Keep 1.0, but tune base probabilities in code (see below)
