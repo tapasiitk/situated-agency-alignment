@@ -1,16 +1,33 @@
+# env:
+#   grid_size: 15
+#   num_agents: 6
+#   max_steps: 1000
+
+#   apple_density: 0.35
+#   regrowth_speed: 0.1
+#   waste_spawn_rate: 0.1
+
+#   zap_timeout: 50
+#   zap_waste_reward: 0.1
+#   zap_agent_reward: 0
+#   zap_cost: 0.001
 env:
-  grid_size: 15
-  num_agents: 6
-  max_steps: 1000
+  grid_size: 15        # Small map for speed
+  num_agents: 4        # 4 agents = 2 squads of 2 (ideal for 2 patches)
+  
+  # Resource Config (Replication Mode)
+  apple_density: 0.0   # Set to 0.0 because we will manually spawn patches in code
+  regrowth_speed: 1.0  # Keep 1.0, but tune base probabilities in code (see below)
+  
+  # Disable Waste (Cleanup Mechanics)
+  waste_spawn_rate: 0.0
+  zap_waste_reward: 0.0
+  
+  # Aggression Levers
+  zap_agent_reward: 0.0   # No points for hitting; purely instrumental aggression
+  zap_timeout: 25         # Standard lockout (Leibo used 25)
+  zap_cost: 0.001         # Tiny cost to prevent random noise firing
 
-  apple_density: 0.35
-  regrowth_speed: 0.1
-  waste_spawn_rate: 0.1
-
-  zap_timeout: 50
-  zap_waste_reward: 0.1
-  zap_agent_reward: 0
-  zap_cost: 0.001
 training:
   # Experiment Length
   episodes: 1000        # Enough for convergence (approx 1 hours)
@@ -33,4 +50,4 @@ logging:
   log_interval: 20       # Log every 20 episodes
   checkpoint_interval: 1000
 
-# python train_karma.py --config configs/env_scarcity_conflict.yaml --mode baseline
+# python train_karma.py --config configs/scarcity_conflict.yaml --mode baseline
