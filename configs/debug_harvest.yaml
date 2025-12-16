@@ -2,7 +2,7 @@
 # Usage: python train_karma.py --config configs/debug_harvest.yaml --mode karma
 
 env:
-  grid_size: 8           # Tiny grid for speed
+  grid_size: 15           # Tiny grid for speed
   num_agents: 2          # Min agents to test interaction/contrastive pairs
   max_steps: 50          # Very short episodes (fast rollouts)
   
