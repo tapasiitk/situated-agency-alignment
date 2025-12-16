@@ -208,7 +208,7 @@ class HarvestDualEnv(ParallelEnv):
 
         # 2. Regrow apples and spawn new waste
         self._regrow_apples()
-        self._spawn_dynamic_waste()
+        # self._spawn_dynamic_waste() # disabling waste spawn for now
 
         # 3. Advance global time and apply truncation
         self.steps += 1
