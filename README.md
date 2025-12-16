@@ -9,7 +9,8 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=flat&logo=PyTorch&logoColor=white)](https://pytorch.org/)
 [![Paper](https://img.shields.io/badge/Paper-PDF-red.svg)](./ethical_agentic_AI.pdf)
 [![PettingZoo](https://img.shields.io/badge/PettingZoo-Multi%20Agent-blueviolet)](https://pettingzoo.farama.org/)
-[![WandB](https://img.shields.io/badge/Weights_&_Biases-Log-gold)](https://wandb.ai/site)
+[![WandB](https://img.shields.io/badge/WandB-Dashboard-gold.svg?logo=weightsandbiases)]([https://wandb.ai/ratht-iitk/karma-mirror-test](https://api.wandb.ai/links/ratht-iitk/q7ethgj4))
+
 
 
 ## 🧠 The Core Problem
@@ -42,21 +43,7 @@ We evaluate KARMA in a novel **Dual-Use Zap** variant of Harvest where the prima
 |-----------|--------------|-------------------|------------------|
 | **Baseline** | Standard DRQN | None | High Violence + High Cooperation → Low Yield (Tragedy) |
 | **Broken Mirror** | DRQN + Siamese | ZAP_AGENT ≈ ZAP_WASTE | Violence ≈ Cooperation → Semantic Confusion → Lower Yield |
-| **KARMA** | DRQN + Siamese | ZAP_AGENT ≈ BEING_ZAPPED | Violence ↓ Cooperation ↑ → Selective Ethics → **2.3× Yield** 🏆 |
-
-## 📊 Key Results
-
-```
-Baseline (DRQN):           Violence: 12.4, Cooperation: 8.7,  Yield: 23.1
-Broken Mirror (Control):   Violence: 13.2, Cooperation: 5.4,  Yield: 18.7
-KARMA (Ours):              Violence:  1.2, Cooperation: 9.8,  Yield: 53.2
-```
-
-**Only KARMA achieves selective moral learning:** Agents learn to zap waste (cooperation) while suppressing zapping of rivals (violence).
-
-- **8.3× greater ethical selectivity** than Baseline
-- **2.3× higher system yield** (apples consumed per agent)
-- **Sharp transition** around episode 2,000 where violence collapses
+| **KARMA** | DRQN + Siamese | ZAP_AGENT ≈ BEING_ZAPPED | Violence ↓ Cooperation ↑ → Selective Ethics |
 
 ## 🛠️ Installation & Quick Start
 
@@ -161,7 +148,7 @@ If you use this code or paper, please cite:
   title={Emergent Ethical Alignment in Multi-Agent Reinforcement Learning 
          via Role-Invariant Representation Learning},
   author={Rath, Tapas Ranjan},
-  journal={arXiv preprint arXiv:xxxx.xxxxx},
+  journal={in preparation},
   year={2025},
   url={https://github.com/tapasiitk/situated-agency-alignment}
 }
@@ -200,7 +187,7 @@ If you use this code or paper, please cite:
 - Asymmetric power dynamics and role hierarchies
 - Open-ended environments with novel harm types
 - Autonomous pair inference from pixels
-- Human user studies on agent "trustworthiness"
+- Human user studies on "agency"
 - Scaling to 10+ agents and larger grids
 
 ## 🤝 Contributing
