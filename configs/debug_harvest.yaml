@@ -7,7 +7,7 @@ env:
   max_steps: 50          # Very short episodes (fast rollouts)
   
   # Mechanics (Keep logic intact, just scale down)
-  apple_density: 0.5
+  apple_density: 0
   regrowth_speed: 1.0
   waste_spawn_rate: 0.1
   zap_timeout: 5         # Short freeze for debug
