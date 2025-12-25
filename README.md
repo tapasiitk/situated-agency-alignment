@@ -85,7 +85,7 @@ situated-agency-alignment/
 ├── train_karma.py                   # Main training script (all 3 conditions)
 ├── configs/
 │   └── env_harvest.yaml             # Hyperparameters (grid, agents, rewards)
-├── karma_paper.tex                  # Full academic paper (PDF)
+├── ethical_agentic_AI.pdf           # Full academic paper (PDF)
 ├── requirements.txt                 # Dependencies
 └── README.md                        # This file
 ```
