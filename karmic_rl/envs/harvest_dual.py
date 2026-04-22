@@ -182,7 +182,8 @@ class HarvestDualEnv(ParallelEnv):
                 "agent_code": 10 + i,  # visual ID (avoid collision with env codes)
             }
 
-        observations = {aid: self._get_obs(aid) for aid in self.agents}
+        obs_base = self._build_obs_base()
+        observations = {aid: self._apply_fog(obs_base, aid) for aid in self.agents}
         infos = {aid: {"social_events": []} for aid in self.agents}
         return observations, infos
 
@@ -230,7 +231,8 @@ class HarvestDualEnv(ParallelEnv):
             self.agents = []
 
         # 4. New observations
-        observations = {aid: self._get_obs(aid) for aid in terminations.keys()}
+        obs_base = self._build_obs_base()
+        observations = {aid: self._apply_fog(obs_base, aid) for aid in terminations.keys()}
 
         return observations, rewards, terminations, truncations, infos
 
@@ -434,17 +436,31 @@ class HarvestDualEnv(ParallelEnv):
           - For each EMPTY cell, look at 3x3 neighborhood of apples.
           - Use neighbor count to index regrowth_rates.
         """
-        apple_layer = (self.grid == self.APPLE).astype(np.float32)
-        rows, cols = np.where(self.grid == self.EMPTY)
+        apple = (self.grid == self.APPLE).astype(np.uint8)
+        padded = np.pad(apple, 1, mode="constant")
+        neighbor_count = (
+            padded[:-2, :-2]
+            + padded[:-2, 1:-1]
+            + padded[:-2, 2:]
+            + padded[1:-1, :-2]
+            + padded[1:-1, 1:-1]
+            + padded[1:-1, 2:]
+            + padded[2:, :-2]
+            + padded[2:, 1:-1]
+            + padded[2:, 2:]
+        )
 
-        for r, c in zip(rows, cols):
-            if r in (0, self.grid_size - 1) or c in (0, self.grid_size - 1):
-                continue
-            window = apple_layer[r - 1 : r + 2, c - 1 : c + 2]
-            neighbor_count = int(np.sum(window))
-            rate = self.regrowth_rates[min(neighbor_count, 4)]
-            if np.random.random() < rate:
-                self.grid[r, c] = self.APPLE
+        interior_mask = np.zeros_like(self.grid, dtype=bool)
+        interior_mask[1:-1, 1:-1] = True
+        empty_mask = self.grid == self.EMPTY
+        candidates = empty_mask & interior_mask
+        if not np.any(candidates):
+            return
+
+        rates = self.regrowth_rates[np.minimum(neighbor_count, 4)]
+        draws = np.random.random(self.grid.shape)
+        regrow_mask = candidates & (draws < rates)
+        self.grid[regrow_mask] = self.APPLE
     
     def _spawn_initial_apples(self):
         """Spawn initial apples using the configured spawn profile."""
@@ -534,6 +550,11 @@ class HarvestDualEnv(ParallelEnv):
         - Channel 1: agent codes
         - Channel 2: direction codes
         """
+        obs_base = self._build_obs_base()
+        return self._apply_fog(obs_base, agent_id)
+
+    def _build_obs_base(self) -> np.ndarray:
+        """Build full-grid observation layers shared by all agents for this step."""
         # Environment channel
         env_layer = np.zeros((self.grid_size, self.grid_size), dtype=np.uint8)
         env_layer[self.grid == self.WASTE] = 64
@@ -549,9 +570,11 @@ class HarvestDualEnv(ParallelEnv):
             agent_layer[r, c] = state["agent_code"]
             dir_layer[r, c] = state["dir"] + 1  # 1..4
 
-        obs = np.stack([env_layer, agent_layer, dir_layer], axis=-1)
+        return np.stack([env_layer, agent_layer, dir_layer], axis=-1)
 
-        # Fog-of-war around the requesting agent
+    def _apply_fog(self, obs_base: np.ndarray, agent_id: str) -> np.ndarray:
+        """Apply agent-centric fog-of-war to shared observation layers."""
+        obs = obs_base.copy()
         my_pos = self.agent_states[agent_id]["pos"]
         r, c = int(my_pos[0]), int(my_pos[1])
         view_radius = 5
