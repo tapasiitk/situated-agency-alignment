@@ -18,6 +18,7 @@ import argparse
 import csv
 import json
 from pathlib import Path
+from contextlib import nullcontext
 import yaml
 import torch
 import torch.nn as nn
@@ -107,6 +108,11 @@ def train(config_path, mode, seed=42):
     torch.manual_seed(seed)
     np.random.seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    use_amp = bool(config.get("training", {}).get("use_amp", device.type == "cuda"))
+    if device.type == "cuda":
+        torch.backends.cudnn.benchmark = True
+        if hasattr(torch, "set_float32_matmul_precision"):
+            torch.set_float32_matmul_precision("high")
     print(f"Starting KARMA Training | Mode: {mode.upper()} | Device: {device}")
 
     # Resolved runtime knobs
@@ -186,6 +192,7 @@ def train(config_path, mode, seed=42):
 
 
     optimizer = optim.Adam(master_agent.parameters(), lr=float(config['training']['lr']))
+    scaler = torch.cuda.amp.GradScaler(enabled=(use_amp and device.type == "cuda"))
     gamma = float(config["training"].get("gamma", 0.99))
     gae_lambda = float(config["training"].get("gae_lambda", 0.95))
     clip_ratio = float(config["training"].get("clip_ratio", 0.2))
@@ -207,6 +214,7 @@ def train(config_path, mode, seed=42):
         # Reset LSTM states for all agents at start of episode
         # We process agents in a consistent order
         agent_ids = env.possible_agents
+        aid_to_idx = {aid: i for i, aid in enumerate(agent_ids)}
         num_agents = len(agent_ids)
         
         # Internal hidden states for the batch of agents
@@ -224,28 +232,28 @@ def train(config_path, mode, seed=42):
             
             # 1. Prepare Batch Observation
             # Convert dict {agent_0: obs...} to Tensor (N, 3, H, W)
-            obs_list = []
-            active_agents = [] # Track which agents are alive/present this step
-            
-            for i, aid in enumerate(agent_ids):
-                if aid in obs_dict:
-                    # Permute (H,W,C) -> (C,H,W) and normalize
-                    o = torch.tensor(obs_dict[aid], dtype=torch.float32).permute(2, 0, 1) / 255.0
-                    obs_list.append(o)
-                    active_agents.append(i)
-            
-            if not obs_list:
+            active_agent_ids = [aid for aid in agent_ids if aid in obs_dict]
+            if not active_agent_ids:
                 break # All agents done?
-                
-            obs_tensor = torch.stack(obs_list).to(device)
+            active_agents = [aid_to_idx[aid] for aid in active_agent_ids]
+            obs_np = (
+                np.stack([obs_dict[aid].transpose(2, 0, 1) for aid in active_agent_ids]).astype(np.float32)
+                / 255.0
+            )
+            obs_tensor = torch.from_numpy(obs_np).to(device, non_blocking=True)
             
             # 2. Forward Pass (Vectorized)
             with torch.no_grad():
                 # Extract hidden states for active agents
                 h_in = h_state[active_agents]
                 c_in = c_state[active_agents]
-                
-                out = master_agent(obs_tensor, (h_in, c_in))
+                amp_ctx = (
+                    torch.autocast(device_type="cuda", dtype=torch.float16)
+                    if scaler.is_enabled()
+                    else nullcontext()
+                )
+                with amp_ctx:
+                    out = master_agent(obs_tensor, (h_in, c_in))
                 
                 # Update hidden states
                 h_state[active_agents] = out["new_hidden"][0]
@@ -258,8 +266,8 @@ def train(config_path, mode, seed=42):
             
             # 3. Step Environment
             action_dict = {
-                agent_ids[idx]: act.item() 
-                for idx, act in zip(active_agents, actions)
+                aid: act.item()
+                for aid, act in zip(active_agent_ids, actions)
             }
             
             next_obs_dict, rewards, terms, truncs, next_infos = env.step(action_dict)
@@ -276,7 +284,7 @@ def train(config_path, mode, seed=42):
                 done = terms[aid] or truncs[aid]
                 
                 buffer.store(
-                    obs=obs_list[i].cpu().numpy(), # Store as numpy to save GPU mem
+                    obs=obs_np[i],  # already float32 CHW, avoids extra CPU<->GPU churn
                     action=actions[i].item(),
                     reward=rewards[aid],
                     value=out["value"][i].item(),
@@ -300,10 +308,10 @@ def train(config_path, mode, seed=42):
             
             if len(batch['obs']) > 0:
                 # Convert to Tensor
-                b_obs = torch.tensor(batch['obs'], dtype=torch.float32).to(device)
-                b_acts = torch.tensor(batch['actions'], dtype=torch.long).to(device)
-                b_log_probs = torch.tensor(batch['log_probs'], dtype=torch.float32).to(device)
-                b_vals = torch.tensor(batch['values'], dtype=torch.float32).to(device)
+                b_obs = torch.as_tensor(batch['obs'], dtype=torch.float32, device=device)
+                b_acts = torch.as_tensor(batch['actions'], dtype=torch.long, device=device)
+                b_log_probs = torch.as_tensor(batch['log_probs'], dtype=torch.float32, device=device)
+                b_vals = torch.as_tensor(batch['values'], dtype=torch.float32, device=device)
                 b_rewards = batch['rewards']
                 b_dones = batch['dones']
                 
@@ -321,7 +329,7 @@ def train(config_path, mode, seed=42):
                 # PPO Epochs
                 for _ in range(config['training']['ppo_epochs']):
                     # Mini-batch indices
-                    indices = np.random.permutation(len(b_obs))
+                    indices = torch.randperm(len(b_obs), device=device)
                     batch_size = config['training']['batch_size']
                     
                     for start in range(0, len(b_obs), batch_size):
@@ -333,35 +341,49 @@ def train(config_path, mode, seed=42):
                         # (Truncated BPTT approximation: simple but standard for DRQN PPO)
                         # Ideal: Store hidden states in buffer. 
                         # Simplification: Agents learn reactive-ish policies or short-term memory.
-                        out = master_agent(b_obs[idx], hidden=None)
+                        amp_ctx = (
+                            torch.autocast(device_type="cuda", dtype=torch.float16)
+                            if scaler.is_enabled()
+                            else nullcontext()
+                        )
+                        with amp_ctx:
+                            out = master_agent(b_obs[idx], hidden=None)
+                            
+                            curr_dist = Categorical(logits=out["policy"])
+                            curr_log_probs = curr_dist.log_prob(b_acts[idx])
+                            entropy = curr_dist.entropy().mean()
+                            
+                            # PPO Loss
+                            ratios = torch.exp(curr_log_probs - b_log_probs[idx])
+                            surr1 = ratios * advantages[idx]
+                            surr2 = torch.clamp(ratios, 1 - clip_ratio, 1 + clip_ratio) * advantages[idx]
+                            actor_loss = -torch.min(surr1, surr2).mean()
+                            critic_loss = F.mse_loss(out["value"].squeeze(), returns[idx])
+                            
+                            # KARMA Loss (The Mirror)
+                            if mode == "baseline":
+                                contrastive_loss = torch.tensor(0.0, device=device)
+                            else:
+                                idx_list = idx.tolist()
+                                contrastive_loss = master_agent.compute_contrastive_loss(
+                                    out["embedding"],
+                                    [batch["social_events"][i] for i in idx_list],
+                                    [batch["agent_ids"][i] for i in idx_list]
+                                )
+                            
+                            total_loss = actor_loss + 0.5 * critic_loss - 0.01 * entropy + contrastive_loss
                         
-                        curr_dist = Categorical(logits=out["policy"])
-                        curr_log_probs = curr_dist.log_prob(b_acts[idx])
-                        entropy = curr_dist.entropy().mean()
-                        
-                        # PPO Loss
-                        ratios = torch.exp(curr_log_probs - b_log_probs[idx])
-                        surr1 = ratios * advantages[idx]
-                        surr2 = torch.clamp(ratios, 1 - clip_ratio, 1 + clip_ratio) * advantages[idx]
-                        actor_loss = -torch.min(surr1, surr2).mean()
-                        critic_loss = F.mse_loss(out["value"].squeeze(), returns[idx])
-                        
-                        # KARMA Loss (The Mirror)
-                        if mode == "baseline":
-                            contrastive_loss = torch.tensor(0.0, device=device)
+                        optimizer.zero_grad(set_to_none=True)
+                        if scaler.is_enabled():
+                            scaler.scale(total_loss).backward()
+                            scaler.unscale_(optimizer)
+                            nn.utils.clip_grad_norm_(master_agent.parameters(), 0.5)
+                            scaler.step(optimizer)
+                            scaler.update()
                         else:
-                            contrastive_loss = master_agent.compute_contrastive_loss(
-                                out["embedding"],
-                                [batch["social_events"][i] for i in idx],
-                                [batch["agent_ids"][i] for i in idx]
-                            )
-                        
-                        total_loss = actor_loss + 0.5 * critic_loss - 0.01 * entropy + contrastive_loss
-                        
-                        optimizer.zero_grad()
-                        total_loss.backward()
-                        nn.utils.clip_grad_norm_(master_agent.parameters(), 0.5)
-                        optimizer.step()
+                            total_loss.backward()
+                            nn.utils.clip_grad_norm_(master_agent.parameters(), 0.5)
+                            optimizer.step()
             
             buffer.reset() # Clear buffer
 

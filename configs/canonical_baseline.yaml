@@ -22,6 +22,7 @@ env:
 training:
   episodes: 2000
   update_every: 10
+  use_amp: true
   lr: 3.0e-4
   gamma: 0.99
   gae_lambda: 0.95
