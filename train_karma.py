@@ -256,8 +256,8 @@ def train(config_path, mode, seed=42):
                     out = master_agent(obs_tensor, (h_in, c_in))
                 
                 # Update hidden states
-                h_state[active_agents] = out["new_hidden"][0]
-                c_state[active_agents] = out["new_hidden"][1]
+                h_state[active_agents] = out["new_hidden"][0].to(h_state.dtype)
+                c_state[active_agents] = out["new_hidden"][1].to(c_state.dtype)
                 
                 # Sample Actions
                 dist = Categorical(logits=out["policy"])
