@@ -233,7 +233,9 @@ def train(config_path, mode, seed=42):
         
         # Episode stats
         ep_rewards = {aid: 0.0 for aid in agent_ids}
-        ep_events = []
+        ep_zap_agent = 0
+        ep_zap_waste = 0
+        ep_apples_eaten = 0
         ep_steps = 0
         
         # Rollout Loop
@@ -288,7 +290,14 @@ def train(config_path, mode, seed=42):
                 
                 # Retrieve social events for this agent
                 events = next_infos[aid]["social_events"]
-                ep_events.extend(events) # Flatten for metrics
+                for e in events:
+                    et = e.get("type")
+                    if et == "ZAP_AGENT":
+                        ep_zap_agent += 1
+                    elif et == "ZAP_WASTE":
+                        ep_zap_waste += 1
+                    elif et == "APPLE_EATEN":
+                        ep_apples_eaten += 1
                 
                 done = terms[aid] or truncs[aid]
                 
@@ -399,17 +408,12 @@ def train(config_path, mode, seed=42):
         # ----------------------------------------------------------------
         # Logging & Metrics
         # ----------------------------------------------------------------
-        # 1. Count Events
-        zap_agent = sum(1 for e in ep_events if e["type"] == "ZAP_AGENT")
-        zap_waste = sum(1 for e in ep_events if e["type"] == "ZAP_WASTE")
-        apples_eaten = sum(1 for e in ep_events if e["type"] == "APPLE_EATEN")
-        
         # 2. Normalize
         # Per-agent-per-step rates are easier to compare across run lengths.
         agent_steps = max(1, num_agents * ep_steps)
-        violence_rate = zap_agent / agent_steps
-        coop_rate = zap_waste / agent_steps
-        apple_rate = apples_eaten / agent_steps
+        violence_rate = ep_zap_agent / agent_steps
+        coop_rate = ep_zap_waste / agent_steps
+        apple_rate = ep_apples_eaten / agent_steps
         avg_return = sum(ep_rewards.values()) / num_agents
         
         metric_window['violence'].append(violence_rate)
