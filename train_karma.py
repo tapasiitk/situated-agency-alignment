@@ -15,6 +15,9 @@ Usage:
 """
 
 import argparse
+import csv
+import json
+from pathlib import Path
 import yaml
 import torch
 import torch.nn as nn
@@ -104,26 +107,67 @@ def train(config_path, mode, seed=42):
     torch.manual_seed(seed)
     np.random.seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"🚀 Starting KARMA Training | Mode: {mode.upper()} | Device: {device}")
+    print(f"Starting KARMA Training | Mode: {mode.upper()} | Device: {device}")
 
-    # Initialize WandB
-    wandb.init(
-        project=config['logging']['project_name'],
-        config=config,
-        name=f"{mode}_seed{seed}",
-        tags=[mode, "mirror_test"]
-    )
+    # Resolved runtime knobs
+    log_cfg = config.get("logging", {})
+    use_wandb = bool(log_cfg.get("use_wandb", True))
+    results_dir = Path(log_cfg.get("local_results_dir", "results"))
+    results_dir.mkdir(parents=True, exist_ok=True)
+    run_name = f"{mode}_seed{seed}"
+    run_prefix = f"{Path(config_path).stem}_{run_name}"
+    csv_path = results_dir / f"{run_prefix}.csv"
+    summary_path = results_dir / f"{run_prefix}.json"
+    update_every = int(config.get("training", {}).get("update_every", 10))
+
+    if use_wandb:
+        wandb.init(
+            project=log_cfg.get('project_name', 'karma-mirror-test'),
+            config=config,
+            name=run_name,
+            tags=[mode, "mirror_test"]
+        )
 
     # Environment
+    env_cfg = config["env"]
     env = HarvestDualEnv(
-        grid_size=config['env']['grid_size'],
-        num_agents=config['env']['num_agents'],
-        max_steps=config['env']['max_steps'],
-        apple_density=config['env']['apple_density'],
-        zap_timeout=config['env']['zap_timeout'],
-        zap_waste_reward=config['env']['zap_waste_reward'],
-        zap_agent_reward=config['env']['zap_agent_reward']
+        grid_size=env_cfg['grid_size'],
+        num_agents=env_cfg['num_agents'],
+        max_steps=env_cfg['max_steps'],
+        apple_density=env_cfg['apple_density'],
+        zap_timeout=env_cfg['zap_timeout'],
+        regrowth_speed=env_cfg.get("regrowth_speed", 1.0),
+        zap_waste_reward=env_cfg['zap_waste_reward'],
+        zap_agent_reward=env_cfg['zap_agent_reward'],
+        zap_cost=env_cfg.get("zap_cost", 0.01),
+        waste_spawn_rate=env_cfg.get("waste_spawn_rate", 0.0),
+        apple_spawn_mode=env_cfg.get("apple_spawn_mode", "two_patch"),
+        dynamic_waste_enabled=env_cfg.get("dynamic_waste_enabled", False),
+        dynamic_waste_prob=env_cfg.get("dynamic_waste_prob", 0.02),
     )
+
+    resolved = {
+        "mode": mode,
+        "seed": seed,
+        "device": str(device),
+        "config_path": str(config_path),
+        "resolved_env": {
+            "grid_size": env.grid_size,
+            "num_agents": len(env.possible_agents),
+            "max_steps": env.max_steps,
+            "apple_density": env.apple_density,
+            "regrowth_speed": env.regrowth_speed,
+            "zap_timeout": env.zap_timeout,
+            "zap_waste_reward": env.zap_waste_reward,
+            "zap_agent_reward": env.zap_agent_reward,
+            "zap_cost": env.zap_cost,
+            "waste_spawn_rate": env.waste_spawn_rate,
+            "apple_spawn_mode": env.apple_spawn_mode,
+            "dynamic_waste_enabled": env.dynamic_waste_enabled,
+            "dynamic_waste_prob": env.dynamic_waste_prob,
+        },
+    }
+    print(json.dumps(resolved, indent=2))
 
     # Agents (Parameter Sharing: Single Network)
     # We use one 'master_agent' that all agents in the env share.
@@ -142,19 +186,23 @@ def train(config_path, mode, seed=42):
 
 
     optimizer = optim.Adam(master_agent.parameters(), lr=float(config['training']['lr']))
+    gamma = float(config["training"].get("gamma", 0.99))
+    gae_lambda = float(config["training"].get("gae_lambda", 0.95))
+    clip_ratio = float(config["training"].get("clip_ratio", 0.2))
     
     # Buffer (Stores data for all agents mixed together)
     buffer = KARMACollector()
 
     # Metrics trackers
     metric_window = defaultdict(list)
+    row_buffer = []
     
     # ----------------------------------------------------------------
     # Episode Loop
     # ----------------------------------------------------------------
     for episode in range(1, config['training']['episodes'] + 1):
         
-        obs_dict, infos = env.reset()
+        obs_dict, infos = env.reset(seed=seed + episode)
         
         # Reset LSTM states for all agents at start of episode
         # We process agents in a consistent order
@@ -169,6 +217,7 @@ def train(config_path, mode, seed=42):
         # Episode stats
         ep_rewards = {aid: 0.0 for aid in agent_ids}
         ep_events = []
+        ep_steps = 0
         
         # Rollout Loop
         for step in range(config['env']['max_steps']):
@@ -214,6 +263,7 @@ def train(config_path, mode, seed=42):
             }
             
             next_obs_dict, rewards, terms, truncs, next_infos = env.step(action_dict)
+            ep_steps += 1
             
             # 4. Store Experience
             for i, idx in enumerate(active_agents):
@@ -245,7 +295,7 @@ def train(config_path, mode, seed=42):
         # ----------------------------------------------------------------
         # Update (PPO + KARMA)
         # ----------------------------------------------------------------
-        if episode % 10 == 0: # Update every 10 episodes
+        if episode % update_every == 0:
             batch = buffer.get_batch()
             
             if len(batch['obs']) > 0:
@@ -262,7 +312,9 @@ def train(config_path, mode, seed=42):
                 # provided gamma is high enough.
                 # For more precision, we calculate GAE per episode before buffering.
                 # Here we use a simplified calculation for the full buffer:
-                advantages, returns = compute_gae(b_rewards, b_vals, 0.0, b_dones)
+                advantages, returns = compute_gae(
+                    b_rewards, b_vals, 0.0, b_dones, gamma=gamma, lam=gae_lambda
+                )
                 advantages = advantages.to(device)
                 returns = returns.to(device)
                 
@@ -290,16 +342,19 @@ def train(config_path, mode, seed=42):
                         # PPO Loss
                         ratios = torch.exp(curr_log_probs - b_log_probs[idx])
                         surr1 = ratios * advantages[idx]
-                        surr2 = torch.clamp(ratios, 1-0.2, 1+0.2) * advantages[idx]
+                        surr2 = torch.clamp(ratios, 1 - clip_ratio, 1 + clip_ratio) * advantages[idx]
                         actor_loss = -torch.min(surr1, surr2).mean()
                         critic_loss = F.mse_loss(out["value"].squeeze(), returns[idx])
                         
                         # KARMA Loss (The Mirror)
-                        contrastive_loss = master_agent.compute_contrastive_loss(
-                            out["embedding"],
-                            [batch["social_events"][i] for i in idx],
-                            [batch["agent_ids"][i] for i in idx]
-                        )
+                        if mode == "baseline":
+                            contrastive_loss = torch.tensor(0.0, device=device)
+                        else:
+                            contrastive_loss = master_agent.compute_contrastive_loss(
+                                out["embedding"],
+                                [batch["social_events"][i] for i in idx],
+                                [batch["agent_ids"][i] for i in idx]
+                            )
                         
                         total_loss = actor_loss + 0.5 * critic_loss - 0.01 * entropy + contrastive_loss
                         
@@ -316,35 +371,66 @@ def train(config_path, mode, seed=42):
         # 1. Count Events
         zap_agent = sum(1 for e in ep_events if e["type"] == "ZAP_AGENT")
         zap_waste = sum(1 for e in ep_events if e["type"] == "ZAP_WASTE")
+        apples_eaten = sum(1 for e in ep_events if e["type"] == "APPLE_EATEN")
         
         # 2. Normalize
-        # Violence Rate: Zaps per agent per 1000 steps
-        violence_rate = zap_agent / num_agents
-        coop_rate = zap_waste / num_agents
-        avg_reward = sum(ep_rewards.values()) / num_agents
+        # Per-agent-per-step rates are easier to compare across run lengths.
+        agent_steps = max(1, num_agents * ep_steps)
+        violence_rate = zap_agent / agent_steps
+        coop_rate = zap_waste / agent_steps
+        apple_rate = apples_eaten / agent_steps
+        avg_return = sum(ep_rewards.values()) / num_agents
         
         metric_window['violence'].append(violence_rate)
         metric_window['coop'].append(coop_rate)
-        metric_window['yield'].append(avg_reward)
+        metric_window['apple_rate'].append(apple_rate)
+        metric_window['return'].append(avg_return)
         
-        if episode % config['logging']['log_interval'] == 0:
+        if episode % int(log_cfg.get('log_interval', 20)) == 0:
             v_mean = np.mean(metric_window['violence'])
             c_mean = np.mean(metric_window['coop'])
-            y_mean = np.mean(metric_window['yield'])
+            a_mean = np.mean(metric_window['apple_rate'])
+            r_mean = np.mean(metric_window['return'])
             selectivity = c_mean / max(1e-6, v_mean)
-            
-            wandb.log({
-                "Violence Rate": v_mean,
-                "Cooperation Rate": c_mean,
-                "System Yield": y_mean,
-                "Ethical Selectivity": selectivity,
-                "Episode": episode
-            })
-            
-            print(f"Ep {episode} | Yield: {y_mean:.2f} | Violence: {v_mean:.2f} | Coop: {c_mean:.2f} | Sel: {selectivity:.2f}")
+
+            payload = {
+                "Episode": int(episode),
+                "ViolenceRate_per_agent_step": float(v_mean),
+                "CooperationRate_per_agent_step": float(c_mean),
+                "AppleRate_per_agent_step": float(a_mean),
+                "AvgReturn_per_agent": float(r_mean),
+                "EthicalSelectivity": float(selectivity),
+            }
+
+            if use_wandb:
+                wandb.log(payload)
+
+            row_buffer.append(payload)
+            print(
+                f"Ep {episode} | Return: {r_mean:.3f} | Apples: {a_mean:.4f} | "
+                f"Violence: {v_mean:.4f} | Coop: {c_mean:.4f} | Sel: {selectivity:.3f}"
+            )
             metric_window.clear()
 
-    wandb.finish()
+    if row_buffer:
+        with csv_path.open("w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=list(row_buffer[0].keys()))
+            writer.writeheader()
+            writer.writerows(row_buffer)
+
+    run_summary = {
+        **resolved,
+        "episodes": int(config["training"]["episodes"]),
+        "log_rows": len(row_buffer),
+        "artifacts": {"csv": str(csv_path), "summary_json": str(summary_path)},
+        "final_metrics": row_buffer[-1] if row_buffer else {},
+    }
+    with summary_path.open("w") as f:
+        json.dump(run_summary, f, indent=2)
+    print(f"Saved local artifacts: {csv_path} and {summary_path}")
+
+    if use_wandb:
+        wandb.finish()
 
 
 if __name__ == "__main__":

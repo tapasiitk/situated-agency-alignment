@@ -71,6 +71,9 @@ class HarvestDualEnv(ParallelEnv):
         zap_agent_reward: float = 0.1,
         zap_cost: float = 0.01,
         waste_spawn_rate: float = 0.10,
+        apple_spawn_mode: str = "two_patch",
+        dynamic_waste_enabled: bool = False,
+        dynamic_waste_prob: float = 0.02,
     ):
         """
         Args:
@@ -84,6 +87,9 @@ class HarvestDualEnv(ParallelEnv):
             zap_agent_reward: reward for zapping other agents (competitive).
             zap_cost: small negative reward for firing a beam.
             waste_spawn_rate: fraction of empty cells turned into waste initially.
+            apple_spawn_mode: "two_patch" (project default) or "central_patch" (canonical-style).
+            dynamic_waste_enabled: whether waste spawns during episodes.
+            dynamic_waste_prob: per-step probability of spawning one waste tile.
         """
         super().__init__()
 
@@ -101,6 +107,9 @@ class HarvestDualEnv(ParallelEnv):
         self.zap_agent_reward = zap_agent_reward
         self.zap_cost = zap_cost
         self.waste_spawn_rate = waste_spawn_rate
+        self.apple_spawn_mode = apple_spawn_mode
+        self.dynamic_waste_enabled = dynamic_waste_enabled
+        self.dynamic_waste_prob = dynamic_waste_prob
 
         # Entity encoding
         self.EMPTY = 0
@@ -208,7 +217,8 @@ class HarvestDualEnv(ParallelEnv):
 
         # 2. Regrow apples and spawn new waste
         self._regrow_apples()
-        # self._spawn_dynamic_waste() # disabling waste spawn for now
+        if self.dynamic_waste_enabled:
+            self._spawn_dynamic_waste()
 
         # 3. Advance global time and apply truncation
         self.steps += 1
@@ -239,13 +249,19 @@ class HarvestDualEnv(ParallelEnv):
         if action == 0:
             return
         elif 1 <= action <= 4:
-            self._move_agent(agent_id, action, rewards)
+            self._move_agent(agent_id, action, rewards, infos)
         elif action in (5, 6):
             self._turn_agent(agent_id, action)
         elif action == 7:
             self._zap_dual(agent_id, rewards, infos)
 
-    def _move_agent(self, agent_id: str, action: int, rewards: Dict[str, float]):
+    def _move_agent(
+        self,
+        agent_id: str,
+        action: int,
+        rewards: Dict[str, float],
+        infos: Dict[str, dict],
+    ):
         """
         Handle cardinal movement and apple consumption.
 
@@ -281,6 +297,9 @@ class HarvestDualEnv(ParallelEnv):
         if self.grid[nr, nc] == self.APPLE:
             self.grid[nr, nc] = self.EMPTY
             rewards[agent_id] += 1.0
+            infos[agent_id]["social_events"].append(
+                {"type": "APPLE_EATEN", "actor": agent_id, "timestamp": self.steps}
+            )
 
     def _turn_agent(self, agent_id: str, action: int):
         """
@@ -428,39 +447,32 @@ class HarvestDualEnv(ParallelEnv):
                 self.grid[r, c] = self.APPLE
     
     def _spawn_initial_apples(self):
-        """Spawn TWO distinct patches to force territory dynamics."""
-        # Patch 1: Top-Leftish (Rows 2-8, Cols 1-5)
-        # Patch 2: Bottom-Rightish (Rows 7-13, Cols 9-13)
-        # The separation (Cols 6-8) is the "Dead Zone"
-        
-        density = 0.8  # High density inside the patch to make it valuable
-        
-        # Left Patch
-        p1 = np.random.choice([self.EMPTY, self.APPLE], size=(7, 5), p=[1-density, density])
+        """Spawn initial apples using the configured spawn profile."""
+        if self.apple_spawn_mode == "central_patch":
+            self._spawn_central_patch_apples()
+        else:
+            self._spawn_two_patch_apples()
+
+    def _spawn_two_patch_apples(self):
+        """Project-default two-patch layout for territory dynamics."""
+        density = 0.8
+        p1 = np.random.choice([self.EMPTY, self.APPLE], size=(7, 5), p=[1 - density, density])
         self.grid[2:9, 1:6] = p1.astype(np.uint8)
-        
-        # Right Patch
-        p2 = np.random.choice([self.EMPTY, self.APPLE], size=(7, 5), p=[1-density, density])
+        p2 = np.random.choice([self.EMPTY, self.APPLE], size=(7, 5), p=[1 - density, density])
         self.grid[7:14, 9:14] = p2.astype(np.uint8)
 
-
-    # def _spawn_initial_apples(self):
-    #     """
-    #     Initialize a central apple patch of size roughly (grid_size/2)^2
-    #     with given density.
-    #     """
-    #     half = self.grid_size // 2
-    #     radius = max(2, self.grid_size // 4)
-    #     r0, r1 = max(0, half - radius), min(self.grid_size, half + radius)
-    #     c0, c1 = max(0, half - radius), min(self.grid_size, half + radius)
-
-    #     patch = np.random.choice(
-    #         [self.EMPTY, self.APPLE],
-    #         size=(r1 - r0, c1 - c0),
-    #         p=[1.0 - self.apple_density, self.apple_density],
-    #     ).astype(np.uint8)
-
-    #     self.grid[r0:r1, c0:c1] = patch
+    def _spawn_central_patch_apples(self):
+        """Canonical-style central patch controlled by apple_density."""
+        half = self.grid_size // 2
+        radius = max(2, self.grid_size // 4)
+        r0, r1 = max(0, half - radius), min(self.grid_size, half + radius)
+        c0, c1 = max(0, half - radius), min(self.grid_size, half + radius)
+        patch = np.random.choice(
+            [self.EMPTY, self.APPLE],
+            size=(r1 - r0, c1 - c0),
+            p=[1.0 - self.apple_density, self.apple_density],
+        ).astype(np.uint8)
+        self.grid[r0:r1, c0:c1] = patch
 
     def _spawn_initial_waste(self):
         """Spawn waste randomly on a fraction of currently empty cells."""
@@ -481,7 +493,7 @@ class HarvestDualEnv(ParallelEnv):
         Optional dynamic waste spawning during the episode to
         maintain an ongoing cleaning task.
         """
-        if np.random.random() < 0.02:  # low probability per step
+        if np.random.random() < self.dynamic_waste_prob:
             empty_positions = np.argwhere(self.grid == self.EMPTY)
             if len(empty_positions) == 0:
                 return

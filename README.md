@@ -73,6 +73,17 @@ Monitor results in **Weights & Biases**: [wandb.ai](https://wandb.ai)
 
 Expected runtime: ~8 hours per condition on NVIDIA RTX 3090.
 
+## Phase A: Canonical Baseline Replication
+
+Use this first before any environment extension or KARMA analysis.
+
+```bash
+python train_karma.py --config configs/canonical_baseline.yaml --mode baseline --seed 42
+```
+
+- VM/private-repo setup + sweep commands: [`docs/canonical_baseline_vm_guide.md`](docs/canonical_baseline_vm_guide.md)
+- Local artifacts are saved as CSV/JSON under `results/canonical_baseline/`
+
 ## 📂 Project Structure
 
 ```
