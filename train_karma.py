@@ -109,6 +109,8 @@ def train(config_path, mode, seed=42):
     np.random.seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     use_amp = bool(config.get("training", {}).get("use_amp", device.type == "cuda"))
+    amp_inference = bool(config.get("training", {}).get("amp_inference", False))
+    compile_model = bool(config.get("training", {}).get("compile_model", False))
     if device.type == "cuda":
         torch.backends.cudnn.benchmark = True
         if hasattr(torch, "set_float32_matmul_precision"):
@@ -189,10 +191,17 @@ def train(config_path, mode, seed=42):
         mode=mode,
         contrastive_weight=config['training']['contrastive_weight']
     ).to(device)
+    if compile_model and hasattr(torch, "compile"):
+        master_agent = torch.compile(master_agent, mode="reduce-overhead")
 
 
     optimizer = optim.Adam(master_agent.parameters(), lr=float(config['training']['lr']))
-    scaler = torch.cuda.amp.GradScaler(enabled=(use_amp and device.type == "cuda"))
+    amp_enabled = bool(use_amp and device.type == "cuda")
+    amp_inference = bool(amp_enabled and amp_inference)
+    if hasattr(torch, "amp") and hasattr(torch.amp, "GradScaler"):
+        scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
+    else:
+        scaler = torch.cuda.amp.GradScaler(enabled=amp_enabled)
     gamma = float(config["training"].get("gamma", 0.99))
     gae_lambda = float(config["training"].get("gae_lambda", 0.95))
     clip_ratio = float(config["training"].get("clip_ratio", 0.2))
@@ -243,13 +252,13 @@ def train(config_path, mode, seed=42):
             obs_tensor = torch.from_numpy(obs_np).to(device, non_blocking=True)
             
             # 2. Forward Pass (Vectorized)
-            with torch.no_grad():
+            with torch.inference_mode():
                 # Extract hidden states for active agents
                 h_in = h_state[active_agents]
                 c_in = c_state[active_agents]
                 amp_ctx = (
                     torch.autocast(device_type="cuda", dtype=torch.float16)
-                    if scaler.is_enabled()
+                    if amp_inference
                     else nullcontext()
                 )
                 with amp_ctx:
@@ -343,7 +352,7 @@ def train(config_path, mode, seed=42):
                         # Simplification: Agents learn reactive-ish policies or short-term memory.
                         amp_ctx = (
                             torch.autocast(device_type="cuda", dtype=torch.float16)
-                            if scaler.is_enabled()
+                            if amp_enabled
                             else nullcontext()
                         )
                         with amp_ctx:

@@ -18,6 +18,8 @@ env:
 training:
   episodes: 20           # Just enough to trigger 2 PPO updates (occurs every 10 eps)
   use_amp: true
+  amp_inference: false
+  compile_model: false
   
   # Hyperparameters
   lr: 3.0e-4
