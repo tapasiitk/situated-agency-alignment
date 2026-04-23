@@ -1,0 +1,48 @@
+env:
+  grid_size: 15
+  num_agents: 5
+  max_steps: 1000
+
+  # Slightly scarcer than canonical to keep social pressure meaningful.
+  apple_density: 0.30
+  apple_spawn_mode: central_patch
+  regrowth_speed: 1.0
+
+  # Keep cleanup path off for phase-A baseline focus.
+  waste_spawn_rate: 0.0
+  dynamic_waste_enabled: false
+  dynamic_waste_prob: 0.0
+  zap_waste_reward: 0.0
+
+  # Softer punishment horizon + slightly higher action cost.
+  zap_agent_reward: 0.0
+  zap_timeout: 20
+  zap_cost: 0.002
+
+training:
+  episodes: 40
+  update_every: 10
+  use_amp: true
+  amp_inference: false
+  compile_model: false
+
+  # Lower LR for long-run numerical stability.
+  lr: 1.5e-4
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_ratio: 0.2
+  ppo_epochs: 4
+  batch_size: 64
+  contrastive_batch_size: 64
+  contrastive_weight: 0.1
+  role_loss_weight: 0.1
+
+logging:
+  project_name: "karma-canonical-baseline-test"
+  use_wandb: true
+  local_results_dir: "results/stability_m1_tuned_smoke"
+  log_interval: 20
+  checkpoint_interval: 250
+
+# Run:
+# python train_karma.py --config configs/stability_m1_tuned_smoke.yaml --mode baseline --seed 42
