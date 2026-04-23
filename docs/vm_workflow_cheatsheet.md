@@ -185,14 +185,7 @@ wandb sync ~/situated-agency-alignment/wandb/offline-run-*
 
 ## 11. M1 pipeline (empathy-gap diagnostics)
 
-One-time deps in the VM venv (analysis uses scikit-learn; Parquet needs pyarrow):
-
-```bash
-cd ~/situated-agency-alignment
-source .venv/bin/activate
-export PYTHONPATH=.
-pip install -U scikit-learn pyarrow
-```
+The VM `.venv` is expected to match `requirements.txt` (includes `scikit-learn` and `pyarrow` for M1 analysis and Parquet rollouts). Activate as in §3; no extra installs are required for a normal setup.
 
 Sync the `m1-pipeline` branch (or whatever branch carries the M1 scripts), then end-to-end smoke (40 train episodes, small rollout, analysis JSON):
 
