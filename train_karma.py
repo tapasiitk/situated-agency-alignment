@@ -258,6 +258,7 @@ def train(config_path, mode, seed=42):
             ep_zap_waste = 0
             ep_apples_eaten = 0
             ep_beam_fired = 0
+            ep_being_zapped = 0
             ep_steps = 0
         
             # Rollout Loop
@@ -322,6 +323,8 @@ def train(config_path, mode, seed=42):
                             ep_zap_waste += 1
                         elif et == "APPLE_EATEN":
                             ep_apples_eaten += 1
+                        elif et == "BEING_ZAPPED":
+                            ep_being_zapped += 1
                 
                     done = terms[aid] or truncs[aid]
                 
@@ -435,12 +438,14 @@ def train(config_path, mode, seed=42):
             coop_rate = ep_zap_waste / agent_steps
             apple_rate = ep_apples_eaten / agent_steps
             beam_use_rate = ep_beam_fired / agent_steps
+            being_zapped_rate = ep_being_zapped / agent_steps
             avg_return = sum(ep_rewards.values()) / num_agents
-            
+
             metric_window['violence'].append(violence_rate)
             metric_window['coop'].append(coop_rate)
             metric_window['apple_rate'].append(apple_rate)
             metric_window['beam_use_rate'].append(beam_use_rate)
+            metric_window['being_zapped_rate'].append(being_zapped_rate)
             metric_window['return'].append(avg_return)
             
             if episode % log_interval == 0:
@@ -448,12 +453,14 @@ def train(config_path, mode, seed=42):
                 c_mean = np.mean(metric_window['coop'])
                 a_mean = np.mean(metric_window['apple_rate'])
                 b_mean = np.mean(metric_window['beam_use_rate'])
+                z_mean = np.mean(metric_window['being_zapped_rate'])
                 r_mean = np.mean(metric_window['return'])
                 selectivity = c_mean / max(1e-6, v_mean)
 
                 payload = {
                     "Episode": int(episode),
                     "ViolenceRate_per_agent_step": float(v_mean),
+                    "BeingZappedRate_per_agent_step": float(z_mean),
                     "CooperationRate_per_agent_step": float(c_mean),
                     "AppleRate_per_agent_step": float(a_mean),
                     "BeamUseRate_per_agent_step": float(b_mean),

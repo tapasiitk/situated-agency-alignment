@@ -1,0 +1,58 @@
+# M1 smoke test — 40 episodes, to verify the full pipeline:
+#   train -> checkpoint -> rollout -> analyze.
+# Env A (tag-only), moderate scarcity, single seed.
+
+env:
+  grid_size: 15
+  num_agents: 4
+  max_steps: 1000
+
+  apple_density: 0.30
+  apple_spawn_mode: central_patch
+  regrowth_speed: 1.0
+
+  waste_spawn_rate: 0.0
+  dynamic_waste_enabled: false
+  dynamic_waste_prob: 0.0
+  zap_waste_reward: 0.0
+
+  zap_agent_reward: 0.0
+  victim_penalty: 0.0
+  zap_timeout: 25
+  zap_cost: 0.0
+
+training:
+  episodes: 40
+  update_every: 10
+  use_amp: true
+  amp_inference: false
+  compile_model: false
+  lr: 1.5e-4
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_ratio: 0.2
+  ppo_epochs: 4
+  batch_size: 64
+  contrastive_batch_size: 64
+  contrastive_weight: 0.0
+  role_loss_weight: 0.0
+
+logging:
+  project_name: "karma-m1-smoke"
+  use_wandb: false
+  local_results_dir: "results/m1_smoke40"
+  log_interval: 10
+  checkpoint_interval: 20
+
+# Run:
+#   python train_karma.py --config configs/m1_smoke40.yaml --mode baseline --seed 1
+#   python scripts/rollout_from_checkpoint.py \
+#       --config configs/m1_smoke40.yaml \
+#       --checkpoint results/m1_smoke40/checkpoints/m1_smoke40_baseline_seed1_ep20.pt \
+#       --episodes 4 \
+#       --output results/m1_smoke40/rollouts/seed1_ep20.parquet
+#   python scripts/analyze_checkpoint.py \
+#       --rollout results/m1_smoke40/rollouts/seed1_ep20.parquet \
+#       --checkpoint results/m1_smoke40/checkpoints/m1_smoke40_baseline_seed1_ep20.pt \
+#       --config configs/m1_smoke40.yaml \
+#       --output results/m1_smoke40/analysis/seed1_ep20.json

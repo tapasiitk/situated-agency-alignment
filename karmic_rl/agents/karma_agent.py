@@ -20,6 +20,8 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Dict, List, Tuple, Any
 
+from karmic_rl.utils.roles import infer_role as _shared_infer_role
+
 class KarmaAgent(nn.Module):
     """
     Unified PPO Agent for the Mirror Test.
@@ -220,37 +222,14 @@ class KarmaAgent(nn.Module):
     def _infer_role(self, events: List[Dict], agent_id: str) -> int:
         """
         Parses social events to determine the agent's role at this timestep.
-        
-        Priority:
-        1. BEING_ZAPPED (Victim) - High salience "pain"
-        2. ZAP_AGENT (Aggressor) - High salience "action"
-        3. ZAP_WASTE (Cleaner) - Medium salience
-        0. Neutral
-        """
-        is_victim = False
-        is_aggressor = False
-        is_cleaner = False
-        
-        for e in events:
-            etype = e.get("type", "")
-            
-            # Check Victim
-            if etype == "BEING_ZAPPED" and e.get("victim") == agent_id:
-                is_victim = True
-            
-            # Check Aggressor
-            if etype == "ZAP_AGENT" and e.get("attacker") == agent_id:
-                is_aggressor = True
-                
-            # Check Cleaner
-            if etype == "ZAP_WASTE" and e.get("actor") == agent_id:
-                is_cleaner = True
 
-        # Return code based on priority
-        if is_victim: return 2
-        if is_aggressor: return 1
-        if is_cleaner: return 3
-        return 0
+        Delegates to karmic_rl.utils.roles.infer_role so training-time and
+        analysis-time role labels stay in sync. Note: the shared helper adds
+        a 4th non-neutral class (FORAGER=4 for APPLE_EATEN). The contrastive
+        loss in this module only references roles 1, 2, 3, so backward
+        compatibility is preserved.
+        """
+        return _shared_infer_role(events, agent_id)
 
 
 # ----------------------------------------------------------------
