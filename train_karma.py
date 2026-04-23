@@ -255,6 +255,7 @@ def train(config_path, mode, seed=42):
             ep_zap_agent = 0
             ep_zap_waste = 0
             ep_apples_eaten = 0
+            ep_beam_fired = 0
             ep_steps = 0
         
             # Rollout Loop
@@ -300,6 +301,7 @@ def train(config_path, mode, seed=42):
                     aid: act.item()
                     for aid, act in zip(active_agent_ids, actions)
                 }
+                ep_beam_fired += sum(1 for a in action_dict.values() if a == 7)
             
                 next_obs_dict, rewards, terms, truncs, next_infos = env.step(action_dict)
                 ep_steps += 1
@@ -430,17 +432,20 @@ def train(config_path, mode, seed=42):
             violence_rate = ep_zap_agent / agent_steps
             coop_rate = ep_zap_waste / agent_steps
             apple_rate = ep_apples_eaten / agent_steps
+            beam_use_rate = ep_beam_fired / agent_steps
             avg_return = sum(ep_rewards.values()) / num_agents
             
             metric_window['violence'].append(violence_rate)
             metric_window['coop'].append(coop_rate)
             metric_window['apple_rate'].append(apple_rate)
+            metric_window['beam_use_rate'].append(beam_use_rate)
             metric_window['return'].append(avg_return)
             
             if episode % log_interval == 0:
                 v_mean = np.mean(metric_window['violence'])
                 c_mean = np.mean(metric_window['coop'])
                 a_mean = np.mean(metric_window['apple_rate'])
+                b_mean = np.mean(metric_window['beam_use_rate'])
                 r_mean = np.mean(metric_window['return'])
                 selectivity = c_mean / max(1e-6, v_mean)
 
@@ -449,6 +454,7 @@ def train(config_path, mode, seed=42):
                     "ViolenceRate_per_agent_step": float(v_mean),
                     "CooperationRate_per_agent_step": float(c_mean),
                     "AppleRate_per_agent_step": float(a_mean),
+                    "BeamUseRate_per_agent_step": float(b_mean),
                     "AvgReturn_per_agent": float(r_mean),
                     "EthicalSelectivity": float(selectivity),
                     "SkippedMinibatches": int(skipped_minibatches),
