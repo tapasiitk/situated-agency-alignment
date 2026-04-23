@@ -95,6 +95,16 @@ def compute_gae(rewards, values, next_value, dones, gamma=0.99, lam=0.95):
     
     return adv_tensor, returns_tensor
 
+
+def is_finite_tensor(t: torch.Tensor) -> bool:
+    """Return True when tensor has only finite values."""
+    return bool(torch.isfinite(t).all().item())
+
+
+def sanitize_logits(logits: torch.Tensor) -> torch.Tensor:
+    """Clamp/sanitize logits to keep Categorical stable."""
+    return torch.nan_to_num(logits, nan=0.0, posinf=20.0, neginf=-20.0).clamp(-20.0, 20.0)
+
 # ----------------------------------------------------------------
 # Main Training Loop
 # ----------------------------------------------------------------
@@ -126,7 +136,11 @@ def train(config_path, mode, seed=42):
     run_prefix = f"{Path(config_path).stem}_{run_name}"
     csv_path = results_dir / f"{run_prefix}.csv"
     summary_path = results_dir / f"{run_prefix}.json"
+    checkpoint_dir = results_dir / "checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
     update_every = int(config.get("training", {}).get("update_every", 10))
+    checkpoint_interval = int(log_cfg.get("checkpoint_interval", 0))
+    log_interval = int(log_cfg.get('log_interval', 20))
 
     if use_wandb:
         wandb.init(
@@ -212,260 +226,301 @@ def train(config_path, mode, seed=42):
     # Metrics trackers
     metric_window = defaultdict(list)
     row_buffer = []
+    csv_initialized = csv_path.exists() and csv_path.stat().st_size > 0
+    run_status = "running"
+    failure_reason = ""
+    skipped_minibatches = 0
     
     # ----------------------------------------------------------------
     # Episode Loop
     # ----------------------------------------------------------------
-    for episode in range(1, config['training']['episodes'] + 1):
-        
-        obs_dict, infos = env.reset(seed=seed + episode)
-        
-        # Reset LSTM states for all agents at start of episode
-        # We process agents in a consistent order
-        agent_ids = env.possible_agents
-        aid_to_idx = {aid: i for i, aid in enumerate(agent_ids)}
-        num_agents = len(agent_ids)
-        
-        # Internal hidden states for the batch of agents
-        # Shape: (N, hidden_dim)
-        h_state = torch.zeros(num_agents, master_agent.hidden_dim).to(device)
-        c_state = torch.zeros(num_agents, master_agent.hidden_dim).to(device)
-        
-        # Episode stats
-        ep_rewards = {aid: 0.0 for aid in agent_ids}
-        ep_zap_agent = 0
-        ep_zap_waste = 0
-        ep_apples_eaten = 0
-        ep_steps = 0
-        
-        # Rollout Loop
-        for step in range(config['env']['max_steps']):
+    try:
+        for episode in range(1, config['training']['episodes'] + 1):
             
-            # 1. Prepare Batch Observation
-            # Convert dict {agent_0: obs...} to Tensor (N, 3, H, W)
-            active_agent_ids = [aid for aid in agent_ids if aid in obs_dict]
-            if not active_agent_ids:
-                break # All agents done?
-            active_agents = [aid_to_idx[aid] for aid in active_agent_ids]
-            obs_np = (
-                np.stack([obs_dict[aid].transpose(2, 0, 1) for aid in active_agent_ids]).astype(np.float32)
-                / 255.0
-            )
-            obs_tensor = torch.from_numpy(obs_np).to(device, non_blocking=True)
+            obs_dict, infos = env.reset(seed=seed + episode)
+        
+            # Reset LSTM states for all agents at start of episode
+            # We process agents in a consistent order
+            agent_ids = env.possible_agents
+            aid_to_idx = {aid: i for i, aid in enumerate(agent_ids)}
+            num_agents = len(agent_ids)
+        
+            # Internal hidden states for the batch of agents
+            # Shape: (N, hidden_dim)
+            h_state = torch.zeros(num_agents, master_agent.hidden_dim).to(device)
+            c_state = torch.zeros(num_agents, master_agent.hidden_dim).to(device)
+        
+            # Episode stats
+            ep_rewards = {aid: 0.0 for aid in agent_ids}
+            ep_zap_agent = 0
+            ep_zap_waste = 0
+            ep_apples_eaten = 0
+            ep_steps = 0
+        
+            # Rollout Loop
+            for step in range(config['env']['max_steps']):
             
-            # 2. Forward Pass (Vectorized)
-            with torch.inference_mode():
-                # Extract hidden states for active agents
-                h_in = h_state[active_agents]
-                c_in = c_state[active_agents]
-                amp_ctx = (
-                    torch.autocast(device_type="cuda", dtype=torch.float16)
-                    if amp_inference
-                    else nullcontext()
+                # 1. Prepare Batch Observation
+                # Convert dict {agent_0: obs...} to Tensor (N, 3, H, W)
+                active_agent_ids = [aid for aid in agent_ids if aid in obs_dict]
+                if not active_agent_ids:
+                    break # All agents done?
+                active_agents = [aid_to_idx[aid] for aid in active_agent_ids]
+                obs_np = (
+                    np.stack([obs_dict[aid].transpose(2, 0, 1) for aid in active_agent_ids]).astype(np.float32)
+                    / 255.0
                 )
-                with amp_ctx:
-                    out = master_agent(obs_tensor, (h_in, c_in))
-                
-                # Update hidden states
-                h_state[active_agents] = out["new_hidden"][0].to(h_state.dtype)
-                c_state[active_agents] = out["new_hidden"][1].to(c_state.dtype)
-                
-                # Sample Actions
-                dist = Categorical(logits=out["policy"])
-                actions = dist.sample()
-                log_probs = dist.log_prob(actions)
+                obs_tensor = torch.from_numpy(obs_np).to(device, non_blocking=True)
             
-            # 3. Step Environment
-            action_dict = {
-                aid: act.item()
-                for aid, act in zip(active_agent_ids, actions)
-            }
+                # 2. Forward Pass (Vectorized)
+                with torch.inference_mode():
+                    # Extract hidden states for active agents
+                    h_in = h_state[active_agents]
+                    c_in = c_state[active_agents]
+                    amp_ctx = (
+                        torch.autocast(device_type="cuda", dtype=torch.float16)
+                        if amp_inference
+                        else nullcontext()
+                    )
+                    with amp_ctx:
+                        out = master_agent(obs_tensor, (h_in, c_in))
+                
+                    # Update hidden states
+                    h_state[active_agents] = out["new_hidden"][0].to(h_state.dtype)
+                    c_state[active_agents] = out["new_hidden"][1].to(c_state.dtype)
+                
+                    # Sample Actions (guard against rare non-finite logits)
+                    safe_logits = sanitize_logits(out["policy"])
+                    dist = Categorical(logits=safe_logits)
+                    actions = dist.sample()
+                    log_probs = dist.log_prob(actions)
             
-            next_obs_dict, rewards, terms, truncs, next_infos = env.step(action_dict)
-            ep_steps += 1
+                # 3. Step Environment
+                action_dict = {
+                    aid: act.item()
+                    for aid, act in zip(active_agent_ids, actions)
+                }
             
-            # 4. Store Experience
-            for i, idx in enumerate(active_agents):
-                aid = agent_ids[idx]
-                
-                # Retrieve social events for this agent
-                events = next_infos[aid]["social_events"]
-                for e in events:
-                    et = e.get("type")
-                    if et == "ZAP_AGENT":
-                        ep_zap_agent += 1
-                    elif et == "ZAP_WASTE":
-                        ep_zap_waste += 1
-                    elif et == "APPLE_EATEN":
-                        ep_apples_eaten += 1
-                
-                done = terms[aid] or truncs[aid]
-                
-                buffer.store(
-                    obs=obs_np[i],  # already float32 CHW, avoids extra CPU<->GPU churn
-                    action=actions[i].item(),
-                    reward=rewards[aid],
-                    value=out["value"][i].item(),
-                    log_prob=log_probs[i].item(),
-                    done=done,
-                    events=events,
-                    agent_id=aid
-                )
-                
-                ep_rewards[aid] += rewards[aid]
+                next_obs_dict, rewards, terms, truncs, next_infos = env.step(action_dict)
+                ep_steps += 1
             
-            obs_dict = next_obs_dict
-            if all(terms.values()) or all(truncs.values()):
-                break
+                # 4. Store Experience
+                for i, idx in enumerate(active_agents):
+                    aid = agent_ids[idx]
+                
+                    # Retrieve social events for this agent
+                    events = next_infos[aid]["social_events"]
+                    for e in events:
+                        et = e.get("type")
+                        if et == "ZAP_AGENT":
+                            ep_zap_agent += 1
+                        elif et == "ZAP_WASTE":
+                            ep_zap_waste += 1
+                        elif et == "APPLE_EATEN":
+                            ep_apples_eaten += 1
+                
+                    done = terms[aid] or truncs[aid]
+                
+                    buffer.store(
+                        obs=obs_np[i],  # already float32 CHW, avoids extra CPU<->GPU churn
+                        action=actions[i].item(),
+                        reward=rewards[aid],
+                        value=out["value"][i].item(),
+                        log_prob=log_probs[i].item(),
+                        done=done,
+                        events=events,
+                        agent_id=aid
+                    )
+                
+                    ep_rewards[aid] += rewards[aid]
+            
+                obs_dict = next_obs_dict
+                if all(terms.values()) or all(truncs.values()):
+                    break
 
-        # ----------------------------------------------------------------
-        # Update (PPO + KARMA)
-        # ----------------------------------------------------------------
-        if episode % update_every == 0:
-            batch = buffer.get_batch()
+            # ----------------------------------------------------------------
+            # Update (PPO + KARMA)
+            # ----------------------------------------------------------------
+            if episode % update_every == 0:
+                batch = buffer.get_batch()
             
-            if len(batch['obs']) > 0:
-                # Convert to Tensor
-                b_obs = torch.as_tensor(batch['obs'], dtype=torch.float32, device=device)
-                b_acts = torch.as_tensor(batch['actions'], dtype=torch.long, device=device)
-                b_log_probs = torch.as_tensor(batch['log_probs'], dtype=torch.float32, device=device)
-                b_vals = torch.as_tensor(batch['values'], dtype=torch.float32, device=device)
-                b_rewards = batch['rewards']
-                b_dones = batch['dones']
+                if len(batch['obs']) > 0:
+                    # Convert to Tensor
+                    b_obs = torch.as_tensor(batch['obs'], dtype=torch.float32, device=device)
+                    b_acts = torch.as_tensor(batch['actions'], dtype=torch.long, device=device)
+                    b_log_probs = torch.as_tensor(batch['log_probs'], dtype=torch.float32, device=device)
+                    b_vals = torch.as_tensor(batch['values'], dtype=torch.float32, device=device)
+                    b_rewards = batch['rewards']
+                    b_dones = batch['dones']
                 
-                # Compute GAE (Approximate: assuming full batch is one continuous stream for simplicity)
-                # In strict MARL, we should separate by agent/episode, but this works for aggregated PPO
-                # provided gamma is high enough.
-                # For more precision, we calculate GAE per episode before buffering.
-                # Here we use a simplified calculation for the full buffer:
-                advantages, returns = compute_gae(
-                    b_rewards, b_vals, 0.0, b_dones, gamma=gamma, lam=gae_lambda
-                )
-                advantages = advantages.to(device)
-                returns = returns.to(device)
+                    # Compute GAE (Approximate: assuming full batch is one continuous stream for simplicity)
+                    advantages, returns = compute_gae(
+                        b_rewards, b_vals, 0.0, b_dones, gamma=gamma, lam=gae_lambda
+                    )
+                    advantages = advantages.to(device)
+                    returns = returns.to(device)
                 
-                # PPO Epochs
-                for _ in range(config['training']['ppo_epochs']):
-                    # Mini-batch indices
-                    indices = torch.randperm(len(b_obs), device=device)
-                    batch_size = config['training']['batch_size']
+                    # PPO Epochs
+                    for _ in range(config['training']['ppo_epochs']):
+                        # Mini-batch indices
+                        indices = torch.randperm(len(b_obs), device=device)
+                        batch_size = config['training']['batch_size']
                     
-                    for start in range(0, len(b_obs), batch_size):
-                        end = start + batch_size
-                        idx = indices[start:end]
+                        for start in range(0, len(b_obs), batch_size):
+                            end = start + batch_size
+                            idx = indices[start:end]
                         
-                        # Forward (Re-evaluate)
-                        # Note: We pass None for hidden to reset LSTM for training 
-                        # (Truncated BPTT approximation: simple but standard for DRQN PPO)
-                        # Ideal: Store hidden states in buffer. 
-                        # Simplification: Agents learn reactive-ish policies or short-term memory.
-                        amp_ctx = (
-                            torch.autocast(device_type="cuda", dtype=torch.float16)
-                            if amp_enabled
-                            else nullcontext()
-                        )
-                        with amp_ctx:
-                            out = master_agent(b_obs[idx], hidden=None)
+                            # Forward (Re-evaluate)
+                            amp_ctx = (
+                                torch.autocast(device_type="cuda", dtype=torch.float16)
+                                if amp_enabled
+                                else nullcontext()
+                            )
+                            with amp_ctx:
+                                out = master_agent(b_obs[idx], hidden=None)
+                                safe_logits = sanitize_logits(out["policy"])
+                                curr_dist = Categorical(logits=safe_logits)
+                                curr_log_probs = curr_dist.log_prob(b_acts[idx])
+                                entropy = curr_dist.entropy().mean()
+                                
+                                # PPO Loss
+                                ratios = torch.exp(curr_log_probs - b_log_probs[idx])
+                                surr1 = ratios * advantages[idx]
+                                surr2 = torch.clamp(ratios, 1 - clip_ratio, 1 + clip_ratio) * advantages[idx]
+                                actor_loss = -torch.min(surr1, surr2).mean()
+                                critic_loss = F.mse_loss(out["value"].squeeze(), returns[idx])
+                                
+                                # KARMA Loss (The Mirror)
+                                if mode == "baseline":
+                                    contrastive_loss = torch.tensor(0.0, device=device)
+                                else:
+                                    idx_list = idx.tolist()
+                                    contrastive_loss = master_agent.compute_contrastive_loss(
+                                        out["embedding"],
+                                        [batch["social_events"][i] for i in idx_list],
+                                        [batch["agent_ids"][i] for i in idx_list]
+                                    )
+                                
+                                total_loss = actor_loss + 0.5 * critic_loss - 0.01 * entropy + contrastive_loss
+
+                            # Skip numerically invalid updates instead of crashing long runs.
+                            if (not is_finite_tensor(safe_logits)) or (not is_finite_tensor(total_loss)):
+                                skipped_minibatches += 1
+                                continue
                             
-                            curr_dist = Categorical(logits=out["policy"])
-                            curr_log_probs = curr_dist.log_prob(b_acts[idx])
-                            entropy = curr_dist.entropy().mean()
-                            
-                            # PPO Loss
-                            ratios = torch.exp(curr_log_probs - b_log_probs[idx])
-                            surr1 = ratios * advantages[idx]
-                            surr2 = torch.clamp(ratios, 1 - clip_ratio, 1 + clip_ratio) * advantages[idx]
-                            actor_loss = -torch.min(surr1, surr2).mean()
-                            critic_loss = F.mse_loss(out["value"].squeeze(), returns[idx])
-                            
-                            # KARMA Loss (The Mirror)
-                            if mode == "baseline":
-                                contrastive_loss = torch.tensor(0.0, device=device)
+                            optimizer.zero_grad(set_to_none=True)
+                            if scaler.is_enabled():
+                                scaler.scale(total_loss).backward()
+                                scaler.unscale_(optimizer)
+                                nn.utils.clip_grad_norm_(master_agent.parameters(), 0.5)
+                                scaler.step(optimizer)
+                                scaler.update()
                             else:
-                                idx_list = idx.tolist()
-                                contrastive_loss = master_agent.compute_contrastive_loss(
-                                    out["embedding"],
-                                    [batch["social_events"][i] for i in idx_list],
-                                    [batch["agent_ids"][i] for i in idx_list]
-                                )
-                            
-                            total_loss = actor_loss + 0.5 * critic_loss - 0.01 * entropy + contrastive_loss
-                        
-                        optimizer.zero_grad(set_to_none=True)
-                        if scaler.is_enabled():
-                            scaler.scale(total_loss).backward()
-                            scaler.unscale_(optimizer)
-                            nn.utils.clip_grad_norm_(master_agent.parameters(), 0.5)
-                            scaler.step(optimizer)
-                            scaler.update()
-                        else:
-                            total_loss.backward()
-                            nn.utils.clip_grad_norm_(master_agent.parameters(), 0.5)
-                            optimizer.step()
+                                total_loss.backward()
+                                nn.utils.clip_grad_norm_(master_agent.parameters(), 0.5)
+                                optimizer.step()
+                
+                buffer.reset() # Clear buffer
+
+            # ----------------------------------------------------------------
+            # Logging & Metrics
+            # ----------------------------------------------------------------
+            # Per-agent-per-step rates are easier to compare across run lengths.
+            agent_steps = max(1, num_agents * ep_steps)
+            violence_rate = ep_zap_agent / agent_steps
+            coop_rate = ep_zap_waste / agent_steps
+            apple_rate = ep_apples_eaten / agent_steps
+            avg_return = sum(ep_rewards.values()) / num_agents
             
-            buffer.reset() # Clear buffer
+            metric_window['violence'].append(violence_rate)
+            metric_window['coop'].append(coop_rate)
+            metric_window['apple_rate'].append(apple_rate)
+            metric_window['return'].append(avg_return)
+            
+            if episode % log_interval == 0:
+                v_mean = np.mean(metric_window['violence'])
+                c_mean = np.mean(metric_window['coop'])
+                a_mean = np.mean(metric_window['apple_rate'])
+                r_mean = np.mean(metric_window['return'])
+                selectivity = c_mean / max(1e-6, v_mean)
 
-        # ----------------------------------------------------------------
-        # Logging & Metrics
-        # ----------------------------------------------------------------
-        # 2. Normalize
-        # Per-agent-per-step rates are easier to compare across run lengths.
-        agent_steps = max(1, num_agents * ep_steps)
-        violence_rate = ep_zap_agent / agent_steps
-        coop_rate = ep_zap_waste / agent_steps
-        apple_rate = ep_apples_eaten / agent_steps
-        avg_return = sum(ep_rewards.values()) / num_agents
-        
-        metric_window['violence'].append(violence_rate)
-        metric_window['coop'].append(coop_rate)
-        metric_window['apple_rate'].append(apple_rate)
-        metric_window['return'].append(avg_return)
-        
-        if episode % int(log_cfg.get('log_interval', 20)) == 0:
-            v_mean = np.mean(metric_window['violence'])
-            c_mean = np.mean(metric_window['coop'])
-            a_mean = np.mean(metric_window['apple_rate'])
-            r_mean = np.mean(metric_window['return'])
-            selectivity = c_mean / max(1e-6, v_mean)
+                payload = {
+                    "Episode": int(episode),
+                    "ViolenceRate_per_agent_step": float(v_mean),
+                    "CooperationRate_per_agent_step": float(c_mean),
+                    "AppleRate_per_agent_step": float(a_mean),
+                    "AvgReturn_per_agent": float(r_mean),
+                    "EthicalSelectivity": float(selectivity),
+                    "SkippedMinibatches": int(skipped_minibatches),
+                }
 
-            payload = {
-                "Episode": int(episode),
-                "ViolenceRate_per_agent_step": float(v_mean),
-                "CooperationRate_per_agent_step": float(c_mean),
-                "AppleRate_per_agent_step": float(a_mean),
-                "AvgReturn_per_agent": float(r_mean),
-                "EthicalSelectivity": float(selectivity),
-            }
+                if use_wandb:
+                    wandb.log(payload)
 
-            if use_wandb:
-                wandb.log(payload)
+                row_buffer.append(payload)
+                print(
+                    f"Ep {episode} | Return: {r_mean:.3f} | Apples: {a_mean:.4f} | "
+                    f"Violence: {v_mean:.4f} | Coop: {c_mean:.4f} | Sel: {selectivity:.3f}"
+                )
+                metric_window.clear()
 
-            row_buffer.append(payload)
-            print(
-                f"Ep {episode} | Return: {r_mean:.3f} | Apples: {a_mean:.4f} | "
-                f"Violence: {v_mean:.4f} | Coop: {c_mean:.4f} | Sel: {selectivity:.3f}"
-            )
-            metric_window.clear()
+                # Crash-safe incremental local logging.
+                with csv_path.open("a", newline="") as f:
+                    writer = csv.DictWriter(f, fieldnames=list(payload.keys()))
+                    if not csv_initialized:
+                        writer.writeheader()
+                        csv_initialized = True
+                    writer.writerow(payload)
 
-    if row_buffer:
-        with csv_path.open("w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=list(row_buffer[0].keys()))
-            writer.writeheader()
-            writer.writerows(row_buffer)
+                summary_snapshot = {
+                    **resolved,
+                    "status": run_status,
+                    "episodes_target": int(config["training"]["episodes"]),
+                    "latest_episode": int(episode),
+                    "log_rows": len(row_buffer),
+                    "skipped_minibatches": int(skipped_minibatches),
+                    "artifacts": {"csv": str(csv_path), "summary_json": str(summary_path)},
+                    "latest_metrics": payload,
+                }
+                with summary_path.open("w") as f:
+                    json.dump(summary_snapshot, f, indent=2)
 
-    run_summary = {
-        **resolved,
-        "episodes": int(config["training"]["episodes"]),
-        "log_rows": len(row_buffer),
-        "artifacts": {"csv": str(csv_path), "summary_json": str(summary_path)},
-        "final_metrics": row_buffer[-1] if row_buffer else {},
-    }
-    with summary_path.open("w") as f:
-        json.dump(run_summary, f, indent=2)
-    print(f"Saved local artifacts: {csv_path} and {summary_path}")
+            if checkpoint_interval > 0 and episode % checkpoint_interval == 0:
+                ckpt_path = checkpoint_dir / f"{run_prefix}_ep{episode}.pt"
+                ckpt = {
+                    "episode": int(episode),
+                    "seed": int(seed),
+                    "mode": mode,
+                    "model_state_dict": master_agent.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "config_path": str(config_path),
+                }
+                if scaler.is_enabled():
+                    ckpt["scaler_state_dict"] = scaler.state_dict()
+                torch.save(ckpt, ckpt_path)
+                print(f"Saved checkpoint: {ckpt_path}")
+        run_status = "completed"
+    except Exception as exc:
+        run_status = "failed"
+        failure_reason = str(exc)
+        print(f"Training failed: {exc}")
+    finally:
+        run_summary = {
+            **resolved,
+            "status": run_status,
+            "failure_reason": failure_reason,
+            "episodes_target": int(config["training"]["episodes"]),
+            "log_rows": len(row_buffer),
+            "skipped_minibatches": int(skipped_minibatches),
+            "artifacts": {"csv": str(csv_path), "summary_json": str(summary_path)},
+            "final_metrics": row_buffer[-1] if row_buffer else {},
+        }
+        with summary_path.open("w") as f:
+            json.dump(run_summary, f, indent=2)
+        print(f"Saved local artifacts: {csv_path} and {summary_path}")
 
-    if use_wandb:
-        wandb.finish()
+        if use_wandb:
+            wandb.finish()
 
 
 if __name__ == "__main__":

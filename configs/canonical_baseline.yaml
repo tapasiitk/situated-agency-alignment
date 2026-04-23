@@ -40,7 +40,7 @@ logging:
   use_wandb: true
   local_results_dir: "results/canonical_baseline"
   log_interval: 20
-  checkpoint_interval: 0
+  checkpoint_interval: 500
 
 # Example:
 # python train_karma.py --config configs/canonical_baseline.yaml --mode baseline --seed 42
