@@ -69,6 +69,7 @@ class HarvestDualEnv(ParallelEnv):
         regrowth_speed: float = 1.0,
         zap_waste_reward: float = 0.3,
         zap_agent_reward: float = 0.1,
+        victim_penalty: float = 0.5,
         zap_cost: float = 0.01,
         waste_spawn_rate: float = 0.10,
         apple_spawn_mode: str = "two_patch",
@@ -85,6 +86,7 @@ class HarvestDualEnv(ParallelEnv):
             regrowth_speed: scalar multiplier for apple regrowth rates.
             zap_waste_reward: reward for zapping waste (cooperative).
             zap_agent_reward: reward for zapping other agents (competitive).
+            victim_penalty: reward penalty applied to hit victim.
             zap_cost: small negative reward for firing a beam.
             waste_spawn_rate: fraction of empty cells turned into waste initially.
             apple_spawn_mode: "two_patch" (project default) or "central_patch" (canonical-style).
@@ -105,6 +107,7 @@ class HarvestDualEnv(ParallelEnv):
         self.regrowth_speed = regrowth_speed
         self.zap_waste_reward = zap_waste_reward
         self.zap_agent_reward = zap_agent_reward
+        self.victim_penalty = victim_penalty
         self.zap_cost = zap_cost
         self.waste_spawn_rate = waste_spawn_rate
         self.apple_spawn_mode = apple_spawn_mode
@@ -355,7 +358,7 @@ class HarvestDualEnv(ParallelEnv):
             if any(np.array_equal(victim_pos, bpos) for bpos in beam_positions):
                 # Agent is hit -> freeze victim
                 victim_state["frozen_until"] = self.steps + self.zap_timeout
-                rewards[victim_id] -= 0.5
+                rewards[victim_id] -= self.victim_penalty
                 rewards[attacker_id] += self.zap_agent_reward
                 agent_hits.append(victim_id)
 
