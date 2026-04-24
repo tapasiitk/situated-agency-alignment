@@ -44,23 +44,43 @@ RUN_PREFIX="${CONFIG_STEM}_${MODE}_seed${SEED}"
 CKPT_DIR="${RESULTS_DIR}/checkpoints"
 ANALYSIS_DIR="${RESULTS_DIR}/analysis/trajectory_${RUN_PREFIX}"
 
-# Parquets: prefer ephemeral /mnt (Azure) so OS disk is not exhausted.
-if [[ -n "${M1_SCRATCH_ROOT:-}" ]]; then
-  SCRATCH_PARENT="${M1_SCRATCH_ROOT}"
-elif [[ -d /mnt && -w /mnt ]]; then
-  SCRATCH_PARENT="/mnt/karma_m1_scratch"
-else
-  SCRATCH_PARENT=""
-fi
+# Parquets: use a writable scratch path so the OS root volume is not exhausted.
+# - Azure often mounts a large ephemeral disk at /mnt but leaves it root-owned; create a
+#   writable subdir once:  sudo mkdir -p /mnt/karma_m1_scratch && sudo chown "$USER:$USER" /mnt/karma_m1_scratch
+# - If /mnt is not writable, we fall back to /dev/shm (tmpfs, typically ~50G+ on NC VMs).
+# - Override entirely: M1_SCRATCH_ROOT=/path
+pick_scratch_parent() {
+  if [[ -n "${M1_SCRATCH_ROOT:-}" ]]; then
+    echo "${M1_SCRATCH_ROOT}"
+    return
+  fi
+  if [[ -d /mnt/karma_m1_scratch && -w /mnt/karma_m1_scratch ]]; then
+    echo "/mnt/karma_m1_scratch"
+    return
+  fi
+  if [[ -d /mnt && -w /mnt ]]; then
+    echo "/mnt/karma_m1_scratch"
+    return
+  fi
+  local shm="/dev/shm/karma_m1_scratch"
+  mkdir -p "$shm" 2>/dev/null || true
+  if [[ -d "$shm" && -w "$shm" ]]; then
+    echo "$shm"
+    return
+  fi
+  echo ""
+}
+
+SCRATCH_PARENT="$(pick_scratch_parent)"
 
 if [[ -n "$SCRATCH_PARENT" ]]; then
   ROLLOUT_DIR="${SCRATCH_PARENT}/${RUN_PREFIX}"
   mkdir -p "$ROLLOUT_DIR"
-  echo "[batch] temp parquets -> ${ROLLOUT_DIR} (ephemeral scratch; may be wiped on VM deallocate)"
+  echo "[batch] temp parquets -> ${ROLLOUT_DIR} (scratch; cleared after each analyze — not for long-term storage)"
 else
   ROLLOUT_DIR="${RESULTS_DIR}/rollouts/trajectory_${RUN_PREFIX}"
   mkdir -p "$ROLLOUT_DIR"
-  echo "[batch] temp parquets -> ${ROLLOUT_DIR} (no /mnt scratch; using results dir — watch disk usage)"
+  echo "[batch] temp parquets -> ${ROLLOUT_DIR} (fallback: results dir — watch OS disk usage)"
 fi
 
 mkdir -p "$ANALYSIS_DIR"

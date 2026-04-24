@@ -105,7 +105,7 @@ Lock this protocol **before** scaling to the full 2×3×5 factorial, or register
 - Per checkpoint: `rollout_from_checkpoint.py` → `analyze_checkpoint.py`; retain Parquet + JSON paths. No within-checkpoint row cherry-picking beyond what the scripts document.
 - **Batch (existing 4k run, no retrain):** from repo root,  
   `bash scripts/batch_m1_trajectory.sh configs/m1_env_A_sc030.yaml results/m1_env_A_sc030 42 20`  
-  writes analysis JSONs under `results/.../analysis/trajectory_*/` (OS disk). **Temporary** rollout **`.parquet`** files go to **`/mnt/karma_m1_scratch/...`** on Azure when `/mnt` is writable, then are **deleted** after each successful `analyze_checkpoint.py` to avoid filling `/`. Rerun **one** checkpoint (e.g. missing ep4000): add a fifth argument `4000`. Override scratch parent: `M1_SCRATCH_ROOT=/path bash scripts/batch_m1_trajectory.sh ...`
+  writes analysis JSONs under `results/.../analysis/trajectory_*/` (OS disk). **Temporary** **`.parquet`** rollouts use a **scratch** directory (not the project `results/` tree): prefers **`/mnt/karma_m1_scratch`** if that path exists and is writable (on Azure NC VMs run once: `sudo mkdir -p /mnt/karma_m1_scratch && sudo chown "$USER:$USER" /mnt/karma_m1_scratch`), else **`/dev/shm/karma_m1_scratch`** (tmpfs), else falls back to `results/.../rollouts/`. Parquets are **removed** after each successful `analyze_checkpoint.py`. Rerun **one** checkpoint: fifth arg `4000`. Override: `M1_SCRATCH_ROOT=/path bash scripts/batch_m1_trajectory.sh ...`
 
 **Stop / amend rules**
 
