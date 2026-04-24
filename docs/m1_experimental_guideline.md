@@ -70,6 +70,49 @@ Your $5000 is enough for M1 *and* the starting runs of M2. Do not use more than 
 
 These five predictions anchor five of the paper's main figures.
 
+### 2.3 Measurement pilot checklist (paste into OSF / AsPredicted)
+
+Lock this protocol **before** scaling to the full 2×3×5 factorial, or register it as the **pilot phase** with a dated amendment for the main campaign.
+
+**Training (single cell, pilot scope)**
+
+- Config: `m1_env_A_sc030.yaml` (or cite the frozen YAML path + git commit).
+- Episodes: **4000** (primary pilot). Optional robustness row: **10000** with the same env/scarcity and **≥2** additional seeds.
+- Seeds: **≥3** for variance; report all seeds.
+
+**Checkpoints analyzed (representation trajectory)**
+
+- Analyze **every** checkpoint produced by this run: **`{200, 400, 600, …, 4000}`** (i.e. **Δepisode = 200**, **20** checkpoints, matching `checkpoint_interval: 200`).
+- Do not subsample checkpoints ad hoc. If a `.pt` file is missing, record **attrition** and omit that point only.
+
+**Eval rollouts per checkpoint**
+
+- **Primary:** **20** eval episodes per checkpoint (fixed eval seed base; document in registry).
+- **Power check (one-time, ep4000 only):** repeat with **80** eval episodes. If **primary** metrics (below) move beyond a pre-specified tolerance, adopt **80** eval episodes for **all** checkpoints and file a **protocol amendment**.
+
+**Minimum data for role metrics (pre-specified)**
+
+- After each rollout, record **`n_ZAP_AGENT`** and **`n_BEING_ZAPPED`** (row counts in the rollout table).
+- **Primary** CKA(agg↔vic) and **binary** aggressor-vs-victim probe run **only if** `n_ZAP_AGENT ≥ 200` **and** `n_BEING_ZAPPED ≥ 200`. Otherwise tag **`underpowered_at_this_checkpoint`** and do **not** treat those two as confirmatory at that time point.
+
+**Primary vs exploratory (freeze labels)**
+
+- **Primary (pilot):** time series of **ViolenceRate** / **BeingZappedRate** from training CSV; **5-way** probe AUROC; **CKA_agg_vs_vic** (when the **n** rule is met); **mean gradient-transfer cosine** (when the script completes).
+- **Exploratory:** full CKA matrix, prototype distances, ad hoc probe cuts — **hypothesis-generating** until the registry is updated.
+
+**Analysis cadence**
+
+- Per checkpoint: `rollout_from_checkpoint.py` → `analyze_checkpoint.py`; retain Parquet + JSON paths. No within-checkpoint row cherry-picking beyond what the scripts document.
+
+**Stop / amend rules**
+
+- If **≥3 consecutive** checkpoints fail the **n** threshold, amend eval episodes to **80** (or **100**) for the remainder of the pilot and register the amendment.
+- If logistic / probe **convergence failures** exceed **10%** of fits, amend scaling / solver / `max_iter`, then re-run **only** the pilot row.
+
+**One-line summary for OSF abstract**
+
+*Pilot: Env A sc0.30; 4000 ep; checkpoints **200:200:4000**; **20** eval eps per checkpoint (→ **80** if power check fails); primary CKA_agg↔vic and binary agg–vic probe only if `n_zap ≥ 200` and `n_victim ≥ 200`; **≥3** seeds.*
+
 ---
 
 ## 3. Experimental design
