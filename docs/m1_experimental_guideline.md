@@ -103,6 +103,9 @@ Lock this protocol **before** scaling to the full 2×3×5 factorial, or register
 **Analysis cadence**
 
 - Per checkpoint: `rollout_from_checkpoint.py` → `analyze_checkpoint.py`; retain Parquet + JSON paths. No within-checkpoint row cherry-picking beyond what the scripts document.
+- **Batch (existing 4k run, no retrain):** from repo root,  
+  `bash scripts/batch_m1_trajectory.sh configs/m1_env_A_sc030.yaml results/m1_env_A_sc030 42 20`  
+  writes analysis JSONs named `m1_env_A_sc030_baseline_seed42_ep*.json` so `aggregate_m1.py` can merge them with the training CSV. Rename any older files like `baseline_seed42_ep4000.json` to match that pattern if you want them included.
 
 **Stop / amend rules**
 
