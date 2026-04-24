@@ -2,6 +2,11 @@
 # Batch rollout + analyze for every checkpoint from a finished M1 training run.
 # No retraining — only loads existing .pt files.
 #
+# Large rollout tables (.parquet) are written to Azure ephemeral disk (/mnt) when
+# available so the OS root volume does not fill. Analysis JSONs stay under
+# results/ on the OS disk (durable path). Each temp parquet is removed after
+# analyze_checkpoint.py succeeds.
+#
 # Usage (from repo root, VM or local):
 #   bash scripts/batch_m1_trajectory.sh \
 #       configs/m1_env_A_sc030.yaml \
@@ -9,11 +14,17 @@
 #       42 \
 #       20
 #
+# Optional 5th arg: single checkpoint episode only (e.g. 4000) to rerun one step.
+#
 # Args:
 #   $1  path to config yaml (must match training)
 #   $2  results directory for that run (contains checkpoints/)
 #   $3  training seed
 #   $4  eval episodes per checkpoint (default 20)
+#   $5  optional: only this episode (e.g. 4000)
+#
+# Env:
+#   M1_SCRATCH_ROOT  override scratch parent (default: /mnt/karma_m1_scratch if /mnt exists)
 #
 # Output naming matches scripts/aggregate_m1.py:
 #   <config_stem>_<mode>_seed<seed>_ep<ep>.json
@@ -24,18 +35,43 @@ CFG="${1:?config yaml path}"
 RESULTS_DIR="${2:?results dir}"
 SEED="${3:?training seed}"
 EVAL_EPISODES="${4:-20}"
+SINGLE_EP="${5:-}"
 
 CONFIG_STEM=$(basename "$CFG" .yaml)
 MODE=baseline
 RUN_PREFIX="${CONFIG_STEM}_${MODE}_seed${SEED}"
 
 CKPT_DIR="${RESULTS_DIR}/checkpoints"
-ROLLOUT_DIR="${RESULTS_DIR}/rollouts/trajectory_${RUN_PREFIX}"
 ANALYSIS_DIR="${RESULTS_DIR}/analysis/trajectory_${RUN_PREFIX}"
 
-mkdir -p "$ROLLOUT_DIR" "$ANALYSIS_DIR"
+# Parquets: prefer ephemeral /mnt (Azure) so OS disk is not exhausted.
+if [[ -n "${M1_SCRATCH_ROOT:-}" ]]; then
+  SCRATCH_PARENT="${M1_SCRATCH_ROOT}"
+elif [[ -d /mnt && -w /mnt ]]; then
+  SCRATCH_PARENT="/mnt/karma_m1_scratch"
+else
+  SCRATCH_PARENT=""
+fi
 
-for EP in $(seq 200 200 4000); do
+if [[ -n "$SCRATCH_PARENT" ]]; then
+  ROLLOUT_DIR="${SCRATCH_PARENT}/${RUN_PREFIX}"
+  mkdir -p "$ROLLOUT_DIR"
+  echo "[batch] temp parquets -> ${ROLLOUT_DIR} (ephemeral scratch; may be wiped on VM deallocate)"
+else
+  ROLLOUT_DIR="${RESULTS_DIR}/rollouts/trajectory_${RUN_PREFIX}"
+  mkdir -p "$ROLLOUT_DIR"
+  echo "[batch] temp parquets -> ${ROLLOUT_DIR} (no /mnt scratch; using results dir — watch disk usage)"
+fi
+
+mkdir -p "$ANALYSIS_DIR"
+
+if [[ -n "$SINGLE_EP" ]]; then
+  EP_SEQ=("$SINGLE_EP")
+else
+  EP_SEQ=($(seq 200 200 4000))
+fi
+
+for EP in "${EP_SEQ[@]}"; do
   CKPT="${CKPT_DIR}/${RUN_PREFIX}_ep${EP}.pt"
   if [[ ! -f "$CKPT" ]]; then
     echo "[skip] missing checkpoint: $CKPT"
@@ -58,6 +94,8 @@ for EP in $(seq 200 200 4000); do
     --checkpoint "$CKPT" \
     --config "$CFG" \
     --output "$ANALYSIS"
+  rm -f "$ROLLOUT"
+  echo "[scratch] removed temp parquet after successful analyze: ${ROLLOUT}"
 done
 
 echo "Done. Aggregate with:"
