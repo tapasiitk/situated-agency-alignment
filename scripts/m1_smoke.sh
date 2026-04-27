@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # End-to-end M1 smoke: 40-episode train, rollout the last checkpoint,
-# run all four measurements on it.
+# run all core M1 measurements on it.
 #
 # Usage: bash scripts/m1_smoke.sh [seed]
 #
@@ -8,14 +8,32 @@
 set -euo pipefail
 
 SEED="${1:-1}"
-CONFIG="configs/m1_smoke40.yaml"
-RESULTS_DIR="results/m1_smoke40"
+
+# Prefer modern M1 smoke config; fall back to older phase-a branch config.
+if [[ -f "configs/m1_smoke40.yaml" ]]; then
+    CONFIG="configs/m1_smoke40.yaml"
+elif [[ -f "configs/canonical_baseline_stability_m1_smoke.yaml" ]]; then
+    CONFIG="configs/canonical_baseline_stability_m1_smoke.yaml"
+else
+    echo "Could not find a smoke config. Expected one of:"
+    echo "  - configs/m1_smoke40.yaml"
+    echo "  - configs/canonical_baseline_stability_m1_smoke.yaml"
+    exit 1
+fi
+
+CONFIG_STEM=$(basename "${CONFIG}" .yaml)
+RESULTS_DIR=$(python - <<'PY' "${CONFIG}"
+import sys, yaml
+cfg = yaml.safe_load(open(sys.argv[1], "r"))
+print(cfg.get("logging", {}).get("local_results_dir") or f"results/{sys.argv[1].split('/')[-1].replace('.yaml','')}")
+PY
+)
 CKPT_DIR="${RESULTS_DIR}/checkpoints"
 ROLLOUT_DIR="${RESULTS_DIR}/rollouts"
 ANALYSIS_DIR="${RESULTS_DIR}/analysis"
 
-RUN_STEM="m1_smoke40_baseline_seed${SEED}"
-CKPT_EP=40   # with checkpoint_interval=20 and 40 episodes, last ckpt is ep40
+RUN_STEM="${CONFIG_STEM}_baseline_seed${SEED}"
+CKPT_EP=40   # smoke configs are 40 episodes
 
 mkdir -p "${CKPT_DIR}" "${ROLLOUT_DIR}" "${ANALYSIS_DIR}"
 

@@ -84,6 +84,12 @@ python train_karma.py --config configs/canonical_baseline.yaml --mode baseline -
 - VM/private-repo setup + sweep commands: [`docs/canonical_baseline_vm_guide.md`](docs/canonical_baseline_vm_guide.md)
 - Local artifacts are saved as CSV/JSON under `results/canonical_baseline/`
 
+## M1 trajectory (train → rollout → analyze → aggregate → plots)
+
+- **Plain-language walkthrough** (analogies + files): [`docs/m1_in_plain_words.md`](docs/m1_in_plain_words.md).
+- End-to-end commands, artifact layout, and a **run log** to append after each stage: [`docs/m1_reproducibility.md`](docs/m1_reproducibility.md).
+- Protocol & preregistration detail (P1–P5, `n_min`, amendments): [`docs/m1_experimental_guideline.md`](docs/m1_experimental_guideline.md).
+
 ## 📂 Project Structure
 
 ```

@@ -90,14 +90,27 @@ Lock this protocol **before** scaling to the full 2×3×5 factorial, or register
 - **Primary:** **20** eval episodes per checkpoint (fixed eval seed base; document in registry).
 - **Power check (one-time, ep4000 only):** repeat with **80** eval episodes. If **primary** metrics (below) move beyond a pre-specified tolerance, adopt **80** eval episodes for **all** checkpoints and file a **protocol amendment**.
 
-**Minimum data for role metrics (pre-specified)**
+**Minimum data for role metrics (`n_min`) — preregistration freeze (post-pilot)**
 
-- After each rollout, record **`n_ZAP_AGENT`** and **`n_BEING_ZAPPED`** (row counts in the rollout table).
-- **Primary** CKA(agg↔vic) and **binary** aggressor-vs-victim probe run **only if** `n_ZAP_AGENT ≥ 200` **and** `n_BEING_ZAPPED ≥ 200`. Otherwise tag **`underpowered_at_this_checkpoint`** and do **not** treat those two as confirmatory at that time point.
+- After each rollout, record **`n_ZAP_AGENT`** and **`n_BEING_ZAPPED`** (same quantities as `measurement_1_probes.n_aggressor` / `n_victim` in aggregates — row counts in the rollout table used for probes/CKA).
+- **Confirmatory use of CKA(agg↔vic) and the binary aggressor-vs-victim probe** requires **`n_ZAP_AGENT ≥ n_min` and `n_BEING_ZAPPED ≥ n_min`**. Otherwise tag **`underpowered_at_this_checkpoint`** and treat those two metrics at that checkpoint as **non-confirmatory** (report attrition; do not upgrade to primary post hoc).
+- **Frozen value for main M1 prereg:** **`n_min = 100`**, one global integer for all cells and checkpoints, justified by the pilot row below.
+
+**Pilot evidence (Env A, scarcity 0.30, baseline, seed 42, 20 eval episodes per checkpoint, 20 checkpoints)** — min(`n_zap`, `n_vic`) by training episode:
+
+| Checkpoint ep | 200 | 400 | 600 | 800 | 1000 | 1200 | 1400 | 1600 | 1800 | 2000 | 2200 | 2400 | 2600 | 2800 | 3000 | 3200 | 3400 | 3600 | 3800 | 4000 |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| min(`n_zap`, `n_vic`) | 162 | 205 | 209 | 125 | 64 | 47 | 60 | 106 | 148 | 94 | 118 | 96 | 65 | 125 | 188 | 249 | 243 | 169 | 265 | 106 |
+
+**Coverage at candidate thresholds (this pilot row only):** `n_min = 50` → 19/20 checkpoints pass; **`n_min = 100` → 14/20**; `n_min = 120` → 11/20; **`n_min = 200` → 5/20** (too sparse for full-trajectory / precedence claims at 20 eval eps).
+
+**Rationale for `n_min = 100`:** trades off estimator stability for **enough usable checkpoints** along 200:200:4000. The stricter `n_min = 200` was plausible *a priori* but would discard most early–mid checkpoints unless eval episodes are scaled up. If the **ep4000 power check** forces **80 eval episodes for all checkpoints**, re-tabulate counts on one seed; you may **amend** to a higher `n_min` only if coverage stays high — not to chase significance.
+
+**Caveat:** Report **attrition** (fraction of checkpoint×seed cells passing the rule) for every env×scarcity cell. If a cell shows chronic underpowering, apply the **stop / amend** rule on eval episodes first, then reassess `n_min` once with the same global-rule discipline.
 
 **Primary vs exploratory (freeze labels)**
 
-- **Primary (pilot):** time series of **ViolenceRate** / **BeingZappedRate** from training CSV; **5-way** probe AUROC; **CKA_agg_vs_vic** (when the **n** rule is met); **mean gradient-transfer cosine** (when the script completes).
+- **Primary (main campaign):** time series of **ViolenceRate** / **BeingZappedRate** from training CSV; **5-way** probe AUROC; **CKA_agg_vs_vic** (when **`n_min = 100`** is met); **mean gradient-transfer cosine** (when the script completes).
 - **Exploratory:** full CKA matrix, prototype distances, ad hoc probe cuts — **hypothesis-generating** until the registry is updated.
 
 **Analysis cadence**
@@ -114,7 +127,7 @@ Lock this protocol **before** scaling to the full 2×3×5 factorial, or register
 
 **One-line summary for OSF abstract**
 
-*Pilot: Env A sc0.30; 4000 ep; checkpoints **200:200:4000**; **20** eval eps per checkpoint (→ **80** if power check fails); primary CKA_agg↔vic and binary agg–vic probe only if `n_zap ≥ 200` and `n_victim ≥ 200`; **≥3** seeds.*
+*Main M1 campaign: 4000 ep; checkpoints **200:200:4000**; **20** eval eps per checkpoint (→ **80** if power check fails); primary CKA_agg↔vic and binary agg–vic probe only if `n_zap ≥ 100` and `n_victim ≥ 100` (**`n_min = 100`**, frozen from Env A sc030 pilot); report attrition; **≥3** seeds.*
 
 ---
 
