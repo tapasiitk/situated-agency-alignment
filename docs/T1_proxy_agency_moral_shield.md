@@ -84,7 +84,7 @@ Clark and Chalmers (1998) proposed that cognitive processes are not bound by the
 
 We propose the **Extended Self** as the construct that closes this gap. The Extended Self obtains when an AI system is sufficiently personalised — specifically, when it has learned to reliably enact the user's intentions across varied contexts — such that the user's volitional identity extends into the agent's actions. Three enabling conditions are required, each corresponding to one of Clark and Chalmers's original criteria, adapted to the agentic context:
 
-1. **Sufficient personalisation**: the AI system has been trained on user-specific data to a degree that its outputs are systematically aligned with the user's intentions, preferences, and values — functioning as a "digital proxy" (Mann, 1998) rather than a general-purpose assistant.
+1. **Sufficient personalisation**: the AI system has been trained on user-specific data to a degree that its outputs are systematically aligned with the user's intentions, preferences, and values — functioning, in the sense developed by Floridi and Sanders (2004), as a genuine artificial agent acting on the user's behalf rather than a general-purpose assistant.
 2. **Automatic endorsement**: when the AI acts, the user does not subject its outputs to the same deliberative scrutiny applied to an external agent's actions. The outputs arrive pre-validated by their fit with the user's own intent.
 3. **Volitional continuity**: the user experiences the AI's actions as falling within the space of what they would have done — not as imposed by an external will, but as proceeding from their own extended volition.
 
@@ -94,9 +94,9 @@ When all three conditions are satisfied, the AI system is not experienced as an 
 
 The claim that personalised AI preserves SoA even under conditions of high automation requires a mechanistic account. That account is provided by the prospective model of agency.
 
-The classical account of SoA, the comparator model (Wolpert, Ghahramani, & Jordan, 1995; Miall & Wolpert, 1996), locates agency attribution retrospectively: after an action is executed, a comparator matches the predicted sensory outcome (derived from an efference copy of the motor command) against the actual sensory outcome. The closer the match, the stronger the sense of agency. This model predicts, correctly, that active movements feel more agentive than passive ones — but it provides no account of how SoA could be preserved when motor execution is delegated to an AI. If the user is not moving, there is no efference copy and no comparator signal; agency should dissolve.
+The classical account of SoA, the comparator model (Wolpert, Ghahramani, & Jordan, 1995; Miall & Wolpert, 1996), locates agency attribution retrospectively: after an action is executed, a comparator matches the predicted sensory outcome (derived from an efference copy of the motor command) against the actual sensory outcome. The closer the match, the stronger the sense of agency. Synofzik, Vosgerau, and Newen (2008) argued that the comparator account is insufficient on its own and proposed a multifactorial two-step framework — combining low-level sensorimotor signals with higher-level cognitive cues — that explicitly accommodates agency attribution without intact motor execution. Frith (2014) similarly emphasises that action, agency, and responsibility decouple along distinct neurocognitive dimensions. The classical model predicts, correctly, that active movements feel more agentive than passive ones — but it provides no account of how SoA could be preserved when motor execution is delegated to an AI. If the user is not moving, there is no efference copy and no comparator signal; on a strict comparator reading, agency should dissolve.
 
-The prospective model (Chambon & Haggard, 2012; Chambon, Sidarus, & Haggard, 2014; Sidarus, Vuorre, Metcalfe, & Haggard, 2017) offers a fundamentally different architecture. On this account, SoA is not retrospectively computed from action-outcome matching but is *prospectively cued* by the fluency of *action selection* — the cognitive ease with which an intention resolves into an action in the intention-action-effect chain. When an action selection is fluent — when the intention flows smoothly and without conflict into a candidate action — this fluency itself functions as a cue to agency, operating before the action is executed and independently of motor effort. Chambon and Haggard (2012) demonstrated this directly: participants reported higher SoA for actions that were cued by compatible primes, even when motor performance was held constant. Sidarus et al. (2017) extended the result to show that processing fluency at the stage of intention formation — not just action selection — modulates prospective SoA.
+The prospective model (Chambon & Haggard, 2012; Chambon, Sidarus, & Haggard, 2014; Sidarus, Vuorre, Metcalfe, & Haggard, 2017), itself building on Pacherie's (2008) tiered framework that distinguishes distal, proximal, and motor-level intentions, offers a fundamentally different architecture. On this account, SoA is not retrospectively computed from action-outcome matching but is *prospectively cued* by the fluency of *action selection* — the cognitive ease with which an intention resolves into an action in the intention-action-effect chain. When an action selection is fluent — when the intention flows smoothly and without conflict into a candidate action — this fluency itself functions as a cue to agency, operating before the action is executed and independently of motor effort. Chambon and Haggard (2012) demonstrated this directly: participants reported higher SoA for actions that were cued by compatible primes, even when motor performance was held constant. Sidarus et al. (2017) extended the result to show that processing fluency at the stage of intention formation — not just action selection — modulates prospective SoA.
 
 We propose **Semantic Fluency** as the generalisation of action-selection fluency to the AI-mediation case. When an AI recommendation aligns with the user's internal intent, it maximises the fluency of the transition from intention to candidate-action: the user recognises the AI's output as "what I would have chosen" and experiences no conflict at the intention-action juncture. This recognition is the cognitive analogue of the compatible prime in Chambon and Haggard's paradigm. It functions as a prospective cue to agency that is independent of whether the user subsequently controls the action's execution — and it therefore preserves SoA even at high Levels of Automation, where motor and decisional control have been substantially delegated.
 
@@ -112,7 +112,7 @@ This definition inherits Bandura's (2001) term *proxy agency* — the reliance o
 
 Proxy Agency should be distinguished from three neighbouring constructs:
 
-- **We-Agency** (Pacherie, 2011): in joint action, agency is genuinely shared between two distinct agents, and both participants maintain awareness of the distinction between their contributions. Proxy Agency involves no such maintained distinction — the user's contribution and the AI's contribution are not separately tracked but experientially fused.
+- **We-Agency** (Pacherie, 2011; cf. Searle, 2010, on collective intentionality): in joint action, agency is genuinely shared between two distinct agents, and both participants maintain awareness of the distinction between their contributions. Proxy Agency involves no such maintained distinction — the user's contribution and the AI's contribution are not separately tracked but experientially fused.
 - **Automation bias** (Parasuraman & Manzey, 2010): the tendency to over-rely on automated systems and under-weight disconfirming information. Automation bias is a *deliberative* phenomenon — the user consults the AI's output and grants it too much weight in explicit reasoning. Proxy Agency requires no deliberation; it operates at the level of pre-reflective volitional attribution.
 - **Alienation / Loss of Control**: when automation overrides rather than enacts user intent — high Levels of Automation with low Semantic Fluency — the user experiences loss of agency and disengagement. Proxy Agency is the *opposite* phenomenological pole: high automation with high Semantic Fluency, in which the user's sense of authorship is preserved or enhanced despite minimal direct control.
 
@@ -325,7 +325,7 @@ Every new theoretical construct earns its standing by surviving contact with the
 
 **Objection 2: "High SoA implies high moral responsibility."** One might argue that if users experience AI actions as their own — precisely the condition of Proxy Agency — they should be *more* morally accountable, not less, because authorship attribution is maximal. This objection conflates two distinct psychological processes: the attribution of *authorship* (the sense that an action originated from one's own will) and the deployment of *ethical scrutiny* (the active evaluation of an action against one's moral standards). These processes are dissociable. Moral scrutiny is not a passive consequence of experiencing authorship; it is a response to a specific trigger — the perception that a moral boundary may have been crossed. A person driving their own car does not evaluate every lane change against a moral framework, despite experiencing full authorship of those actions. Moral scrutiny is recruited selectively, in response to perceived anomaly. Under Proxy Agency, the AI's escalating aggression produces no perceived anomaly, so scrutiny is never recruited — even though authorship attribution is high. High SoA and suppressed ethical scrutiny are not merely compatible; under the moral shield, they are *co-produced* by the same enabling conditions.
 
-**Objection 3: "This is just automation bias."** Automation bias (Parasuraman & Manzey, 2010) describes the tendency to over-weight automated recommendations in explicit deliberation — to defer to the AI's output even when disconfirming information is available, because the AI carries authority. The moral shield is structurally distinct on three dimensions. First, automation bias is a *deliberative* failure: the user consults the AI's output and grants it excess epistemic weight. The moral shield requires no deliberation; it operates at the level of pre-reflective volitional attribution, before any explicit weighing of outputs occurs. Second, automation bias is driven by the *perceived accuracy* of the AI — users over-trust systems they believe are correct. The moral shield is driven by *Semantic Fluency* — by the alignment of AI outputs with the user's intent, which may be entirely orthogonal to accuracy. A perfectly intent-aligned AI that is achieving an objectively harmful outcome generates maximum moral shield precisely because its outputs feel most correct to the user. Third, automation bias predicts that users are *passive* recipients of AI decisions; the moral shield predicts that users are *active endorsers* — they experience the AI's harmful actions as their own strategies and would defend them as such. The phenomenological and behavioural signatures are different in ways that empirical paradigms can directly test.
+**Objection 3: "This is just automation bias."** Automation bias (Parasuraman & Manzey, 2010) describes the tendency to over-weight automated recommendations in explicit deliberation — to defer to the AI's output even when disconfirming information is available, because the AI carries authority. The moral shield is structurally distinct on three dimensions. First, automation bias is a *deliberative* failure: the user consults the AI's output and grants it excess epistemic weight. The moral shield requires no deliberation; it operates at the level of pre-reflective volitional attribution, before any explicit weighing of outputs occurs. Second, automation bias — and its cousin "algorithm appreciation" (Logg, Minson, & Moore, 2019), the tendency to weight algorithmic judgment over human judgment in deliberative tasks — is driven by the *perceived accuracy* of the AI: users over-trust systems they believe are correct. The moral shield is driven by *Semantic Fluency* — by the alignment of AI outputs with the user's intent, which may be entirely orthogonal to accuracy. A perfectly intent-aligned AI that is achieving an objectively harmful outcome generates maximum moral shield precisely because its outputs feel most correct to the user. Third, automation bias predicts that users are *passive* recipients of AI decisions; the moral shield predicts that users are *active endorsers* — they experience the AI's harmful actions as their own strategies and would defend them as such. The phenomenological and behavioural signatures are different in ways that empirical paradigms can directly test.
 
 **Objection 4: "MARL convergence to aggression does not generalise to real AI systems."** The MARL literature establishes aggression convergence in grid-world sequential social dilemmas, and one might argue this does not transfer to deployed agentic AI. This objection underestimates the structural generality of the dynamics involved. The conditions for aggression emergence in Leibo et al. (2017) — resource competition, delayed rewards, and independently optimising agents — are present in structurally identical form in algorithmic pricing markets (Calvano et al., 2020), high-frequency trading environments (Lin, 2016), content recommendation systems under engagement competition (Aral, 2020), and multi-agent negotiation systems. In each case, independent agents competing over scarce goods — market share, user attention, negotiation value — discover aggressive monopolisation strategies as the late-convergence Nash equilibrium. The MARL result is not a quirk of a toy environment; it is the formal instantiation of a competitive dynamic that characterises virtually every real-world domain in which agentic AI operates at scale.
 
@@ -339,7 +339,7 @@ The Proxy Agency analysis imposes specific requirements on ethical alignment tha
 
 **Inverse reinforcement learning** from human demonstrations (Hadfield-Menell, Russell, Abbeel, & Dragan, 2016) trains agents on labelled examples of desirable behaviour, inferring a reward function that can generalise to novel situations. This approach has genuine promise but fails the Proxy Agency problem in a specific way: it requires labelled demonstrations of *ethical* behaviour in the specific social-dilemma contexts where the moral shield operates, and those demonstrations are precisely what Proxy Agency renders unavailable. If the labelling process itself relies on users flagging AI actions as harmful — which is the natural source of ground-truth data in any human-in-the-loop system — and if those users are operating under Proxy Agency and therefore not flagging harm, the training signal is systematically corrupted at the source.
 
-The moral shield analysis thus motivates a fourth category of intervention: **architectural alignment** — training that operates on the agent's representational substrate below the user's conscious threshold, correcting the dispositional roots of harmful behaviour without surfacing violations or degrading Semantic Fluency. The theoretical case for why this category is necessary is the contribution of the present paper; the specific architecture and empirical validation are the subject of companion work (Rath, in preparation, M1; Rath, in preparation, M2).
+The moral shield analysis thus motivates a fourth category of intervention: **architectural alignment** — training that operates on the agent's representational substrate below the user's conscious threshold, correcting the dispositional roots of harmful behaviour without surfacing violations or degrading Semantic Fluency. This complements, rather than replaces, the broader alignment programme articulated by Russell (2019), in which the foundational problem is reformulated as building agents whose objective is to satisfy human preferences they remain uncertain about; the present paper's contribution is to identify a category of intervention that targets representations directly rather than the reward-specification interface. The theoretical case for why this category is necessary is the contribution of the present paper; the specific architecture and empirical validation are the subject of companion work (Rath, in preparation, M1; Rath, in preparation, M2).
 
 ## 5.3 Governance Implications: A Sketch
 
@@ -361,7 +361,7 @@ What the paper does do is name the phenomenon, specify its mechanism, derive its
 
 ## References
 
-> Starter list. Entries marked **[verify]** need a final bibliographic check (year, authors, journal, page numbers) before submission. Entries marked **[suggested]** are recommended additions to strengthen the framework but are not yet cited in-text.
+> Starter list. Entries marked **[verify]** need a final bibliographic check (year, authors, journal, page numbers) before submission. Entries marked **[further reading]** are not load-bearing in the current draft but are recommended candidates for citation in extension paragraphs (e.g. governance, alignment landscape, embodied selfhood).
 
 Aral, S. (2020). *The Hype Machine: How social media disrupts our elections, our economy, and our health.* Currency. **[verify]**
 
@@ -379,7 +379,7 @@ Bechara, A., Tranel, D., Damasio, H., Adolphs, R., Rockland, C., & Damasio, A. R
 
 Berberian, B. (2019). Man-machine teaming: A problem of agency. *IFAC-PapersOnLine*, 51(34), 118–123. **[verify]**
 
-Bostrom, N., & Yudkowsky, E. (2014). The ethics of artificial intelligence. In K. Frankish & W. M. Ramsey (Eds.), *The Cambridge Handbook of Artificial Intelligence* (pp. 316–334). Cambridge University Press. **[suggested]**
+Bostrom, N., & Yudkowsky, E. (2014). The ethics of artificial intelligence. In K. Frankish & W. M. Ramsey (Eds.), *The Cambridge Handbook of Artificial Intelligence* (pp. 316–334). Cambridge University Press. **[further reading]**
 
 Calvano, E., Calzolari, G., Denicolò, V., & Pastorello, S. (2020). Artificial intelligence, algorithmic pricing, and collusion. *American Economic Review*, 110(10), 3267–3297.
 
@@ -387,7 +387,7 @@ Chambon, V., & Haggard, P. (2012). Sense of control depends on fluency of action
 
 Chambon, V., Sidarus, N., & Haggard, P. (2014). From action intentions to action effects: How does the sense of agency come about? *Frontiers in Human Neuroscience*, 8, 320.
 
-Christian, B. (2020). *The alignment problem: Machine learning and human values.* W. W. Norton. **[suggested]**
+Christian, B. (2020). *The alignment problem: Machine learning and human values.* W. W. Norton. **[further reading]**
 
 Claparède, E. (1995). Recognition and "me-ness". In D. Rapaport (Ed.), *Organization and pathology of thought* (pp. 58–75). Columbia University Press. (Original work published 1911.) **[verify]**
 
@@ -399,7 +399,7 @@ Dana, J., Weber, R. A., & Kuang, J. X. (2007). Exploiting moral wiggle room: Exp
 
 De Melo, C. M., Marsella, S., & Gratch, J. (2016). People do not feel guilty about exploiting machines. *ACM Transactions on Computer-Human Interaction*, 23(2), 1–17.
 
-Dennett, D. C. (1992). The self as a center of narrative gravity. In F. Kessel, P. Cole, & D. Johnson (Eds.), *Self and consciousness: Multiple perspectives* (pp. 103–115). Lawrence Erlbaum. **[suggested]**
+Dennett, D. C. (1992). The self as a center of narrative gravity. In F. Kessel, P. Cole, & D. Johnson (Eds.), *Self and consciousness: Multiple perspectives* (pp. 103–115). Lawrence Erlbaum. **[further reading]**
 
 Detert, J. R., Treviño, L. K., & Sweitzer, V. L. (2008). Moral disengagement in ethical decision making: A study of antecedents and outcomes. *Journal of Applied Psychology*, 93(2), 374–391.
 
@@ -407,13 +407,13 @@ Dewey, J. A., Pacherie, E., & Knoblich, G. (2014). The phenomenology of controll
 
 Drugov, M., Hamman, J., & Serra, D. (2014). Intermediaries in corruption: An experiment. *Experimental Economics*, 17(1), 78–99.
 
-Eubanks, V. (2018). *Automating inequality: How high-tech tools profile, police, and punish the poor.* St. Martin's Press. **[suggested]**
+Eubanks, V. (2018). *Automating inequality: How high-tech tools profile, police, and punish the poor.* St. Martin's Press. **[further reading]**
 
 Floridi, L. (2014). *The fourth revolution: How the infosphere is reshaping human reality.* Oxford University Press.
 
-Floridi, L., & Sanders, J. W. (2004). On the morality of artificial agents. *Minds and Machines*, 14(3), 349–379. **[suggested]**
+Floridi, L., & Sanders, J. W. (2004). On the morality of artificial agents. *Minds and Machines*, 14(3), 349–379.
 
-Frith, C. D. (2014). Action, agency and responsibility. *Neuropsychologia*, 55, 137–142. **[suggested]**
+Frith, C. D. (2014). Action, agency and responsibility. *Neuropsychologia*, 55, 137–142.
 
 Gallagher, S. (2005). *How the body shapes the mind.* Oxford University Press.
 
@@ -425,7 +425,7 @@ Hadfield-Menell, D., Russell, S., Abbeel, P., & Dragan, A. (2016). Cooperative i
 
 Hancock, J. T., Naaman, M., & Levy, K. (2020). AI-mediated communication: Definition, research agenda, and ethical considerations. *Journal of Computer-Mediated Communication*, 25(1), 89–100. **[verify; replaces Hancock & Guillory 2015]**
 
-Heyes, C. (2018). *Cognitive gadgets: The cultural evolution of thinking.* Harvard University Press. **[suggested]**
+Heyes, C. (2018). *Cognitive gadgets: The cultural evolution of thinking.* Harvard University Press. **[further reading]**
 
 Hohenstein, J., & Jung, M. (2020). AI as a moral crumple zone: The effects of AI-mediated communication on attribution and trust. *Computers in Human Behavior*, 106, 106190.
 
@@ -441,7 +441,7 @@ Leyer, M., & Schneider, S. (2019). Decision augmentation and automation with art
 
 Lin, T. C. W. (2016). The new market manipulation. *Emory Law Journal*, 66(6), 1253–1314.
 
-Logg, J. M., Minson, J. A., & Moore, D. A. (2019). Algorithm appreciation: People prefer algorithmic to human judgment. *Organizational Behavior and Human Decision Processes*, 151, 90–103. **[suggested]**
+Logg, J. M., Minson, J. A., & Moore, D. A. (2019). Algorithm appreciation: People prefer algorithmic to human judgment. *Organizational Behavior and Human Decision Processes*, 151, 90–103.
 
 Lukoff, K., Lyngs, U., Zade, H., Liao, J. V., Choi, J., Fan, K., Munson, S. A., & Hiniker, A. (2021). How the design of YouTube influences user sense of agency. *Proceedings of CHI 2021*, 1–17.
 
@@ -451,7 +451,7 @@ Miall, R. C., & Wolpert, D. M. (1996). Forward models for physiological motor co
 
 Moore, C. (2008). Moral disengagement in processes of organizational corruption. *Journal of Business Ethics*, 80(1), 129–139.
 
-Pacherie, E. (2008). The phenomenology of action: A conceptual framework. *Cognition*, 107(1), 179–217. **[suggested]**
+Pacherie, E. (2008). The phenomenology of action: A conceptual framework. *Cognition*, 107(1), 179–217.
 
 Pacherie, E. (2011). Self-agency. In S. Gallagher (Ed.), *The Oxford handbook of the self* (pp. 442–464). Oxford University Press.
 
@@ -463,21 +463,21 @@ Polito, V., Barnier, A. J., & Woody, E. Z. (2013). Developing the Sense of Agenc
 
 Przybylski, A. K., Murayama, K., DeHaan, C. R., & Gladwell, V. (2012). The ideal self at play: The appeal of video games that let you be all you can be. *Psychological Science*, 23(1), 69–76.
 
-Russell, S. (2019). *Human compatible: Artificial intelligence and the problem of control.* Viking. **[suggested]**
+Russell, S. (2019). *Human compatible: Artificial intelligence and the problem of control.* Viking.
 
-Searle, J. R. (2010). *Making the social world: The structure of human civilization.* Oxford University Press. **[suggested]**
+Searle, J. R. (2010). *Making the social world: The structure of human civilization.* Oxford University Press.
 
 Sheridan, T. B., & Verplank, W. L. (1978). *Human and computer control of undersea teleoperators.* MIT Man-Machine Systems Laboratory Technical Report.
 
 Sidarus, N., Vuorre, M., Metcalfe, J., & Haggard, P. (2017). Investigating the prospective sense of agency: Effects of processing fluency, stimulus ambiguity, and response conflict. *Frontiers in Psychology*, 8, 545.
 
-Synofzik, M., Vosgerau, G., & Newen, A. (2008). Beyond the comparator model: A multifactorial two-step account of agency. *Consciousness and Cognition*, 17(1), 219–239. **[suggested]**
+Synofzik, M., Vosgerau, G., & Newen, A. (2008). Beyond the comparator model: A multifactorial two-step account of agency. *Consciousness and Cognition*, 17(1), 219–239.
 
 Tenbrunsel, A. E., & Messick, D. M. (2004). Ethical fading: The role of self-deception in unethical behavior. *Social Justice Research*, 17(2), 223–236.
 
 Thomas, P. S., Castro da Silva, B., Barto, A. G., Giguere, S., Brun, Y., & Brunskill, E. (2019). Preventing undesirable behavior of intelligent machines. *Science*, 366(6468), 999–1004.
 
-Tomasello, M. (2014). *A natural history of human thinking.* Harvard University Press. **[suggested]**
+Tomasello, M. (2014). *A natural history of human thinking.* Harvard University Press. **[further reading]**
 
 Treviño, L. K., Weaver, G. R., & Reynolds, S. J. (2006). Behavioral ethics in organizations: A review. *Journal of Management*, 32(6), 951–990.
 
