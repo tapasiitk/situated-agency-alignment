@@ -100,7 +100,7 @@ The prospective model (Chambon & Haggard, 2012; Chambon, Sidarus, & Haggard, 201
 
 We propose **Semantic Fluency** as the generalisation of action-selection fluency to the AI-mediation case. When an AI recommendation aligns with the user's internal intent, it maximises the fluency of the transition from intention to candidate-action: the user recognises the AI's output as "what I would have chosen" and experiences no conflict at the intention-action juncture. This recognition is the cognitive analogue of the compatible prime in Chambon and Haggard's paradigm. It functions as a prospective cue to agency that is independent of whether the user subsequently controls the action's execution — and it therefore preserves SoA even at high Levels of Automation, where motor and decisional control have been substantially delegated.
 
-We call this the **Alignment Hypothesis**: as the Semantic Fluency of an AI's outputs increases — operationalised through measures of intent–output divergence such as Levenshtein edit distance for token-level outputs, BLEU-/ROUGE-style overlap for natural-language outputs, or behavioural-cloning loss for action-policy outputs — Subjective SoA will increase, independently of the user's direct contribution to action execution. The Alignment Hypothesis directly resolves the contradiction in the automation-SoA literature identified in Section 2.4: studies finding that automation enhances SoA (Ueda et al., 2021; Kumar & Srinivasan, 2014, 2017) use systems with relatively high intent-alignment; studies finding that automation diminishes SoA (Lukoff et al., 2021) use systems — such as YouTube's autoplay — whose recommendations frequently diverge from the user's reflective intent. The variable that governs the direction of effect is not the presence of automation but the degree of Semantic Fluency it achieves.
+We call this the **Alignment Hypothesis**: as the Semantic Fluency of an AI's outputs increases — operationalised through measures of intent–output divergence such as Levenshtein edit distance for token-level outputs, BLEU-/ROUGE-style overlap for natural-language outputs, or behavioural-cloning loss for action-policy outputs — Subjective SoA will increase, independently of the user's direct contribution to action execution. We treat these surface-level measures as *proxies* whose validity rests on convergence with users' own intent-fit ratings; their joint validation against subjective intent-alignment self-reports is itself an open empirical task that the companion behavioural studies (Rath, in preparation, H1) address directly. The Alignment Hypothesis directly resolves the contradiction in the automation-SoA literature identified in Section 2.4: studies finding that automation enhances SoA (Ueda et al., 2021; Kumar & Srinivasan, 2014, 2017) use systems with relatively high intent-alignment; studies finding that automation diminishes SoA (Lukoff et al., 2021) use systems — such as YouTube's autoplay — whose recommendations frequently diverge from the user's reflective intent. The variable that governs the direction of effect is not the presence of automation but the degree of Semantic Fluency it achieves.
 
 ## 3.3 Proxy Agency: Definition and Enabling Conditions
 
@@ -108,7 +108,7 @@ The concepts of the Extended Self and Semantic Fluency converge in the following
 
 > **Proxy Agency**: the attribution of an AI system's actions to one's own extended will, arising from the system's reliable enactment of the user's intentions via Semantic Fluency, such that the AI's actions are experienced as continuous with one's own volition.
 
-This definition inherits Bandura's (2001) term *proxy agency* — the reliance on capable others to act on one's behalf as a means of exercising influence beyond one's direct reach — but substantially revises its content. In Bandura's original social-cognitive usage, proxy agency involves the conscious awareness that one is acting *through* another; the delegation remains phenomenologically transparent. The Proxy Agency we define here is marked by the *disappearance* of this transparency: the user does not experience themselves as acting through the AI but as acting *as* the AI, in the way one experiences typing as expressing thought rather than as commanding fingers. The phenomenological gap between self and agent closes.
+This definition inherits Bandura's (2001) term *proxy agency* — the reliance on capable others to act on one's behalf as a means of exercising influence beyond one's direct reach — but substantially revises its content. In Bandura's original social-cognitive usage, proxy agency involves conscious awareness that one is acting *through* another; even when delegation becomes habitual and attentionally inexpensive, the proxy remains representationally separate from the principal — that is, the *structural distinction* between self-as-author and other-as-executor is preserved, even if the user no longer deliberates over it. The Proxy Agency we define here is marked by the *disappearance* of this transparency: the user does not experience themselves as acting through the AI but as acting *as* the AI, in the way one experiences typing as expressing thought rather than as commanding fingers. The phenomenological gap between self and agent closes — not as a degraded form of habitual delegation, but as a distinct structural state in which the self–proxy boundary itself becomes transparent.
 
 Proxy Agency should be distinguished from three neighbouring constructs:
 
@@ -170,12 +170,17 @@ prospective SoA — the user experiences the AI as extending their own volition.
 increases toward full autonomy, two competing forces
 operate: Semantic Fluency continues to support SoA as long as the AI's actions remain
 recognisable as what the user would have chosen, but increasing autonomy eventually drives the
-AI's optimised actions beyond the boundary of the user's intent recognition. When the user can
-no longer identify their intentions in the agent's behaviour — when the agent acts on optimised
-strategies that are efficient but alien to the user's deliberative style — the prospective cue to
-agency breaks down (Wenke, Fleming, & Haggard, 2010), automation complacency sets in (Ueda
-et al., 2021), and SoA falls. The resulting function is an inverted-U: SoA rises from low to
-moderate LoA and falls from moderate to full autonomy.
+AI's optimised actions beyond the boundary of the user's intent recognition. The descending
+limb of the inverted-U therefore relies on an additional empirical *assumption* — that
+sufficiently high autonomy systematically drives optimised AI behaviour beyond the user's
+intent-recognition boundary — rather than being a derived consequence of the prospective
+model itself. When the user can no longer identify their intentions in the agent's behaviour —
+when the agent acts on optimised strategies that are efficient but alien to the user's deliberative
+style — prospective cueing of agency is expected to break down on the same logic as in
+subliminal-priming work (Wenke, Fleming, & Haggard, 2010), and automation complacency may
+set in (Ueda et al., 2021); under the stated assumption, SoA then falls. The resulting predicted
+function is an inverted-U: SoA rises from low to moderate LoA and falls from moderate to full
+autonomy.
 
 **The moral shield corollary.** The peak of this inverted-U — the zone of maximum Semantic
 Fluency and maximum Proxy Agency — is simultaneously the zone of *deepest* moral shield. This
