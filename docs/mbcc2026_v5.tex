@@ -1,0 +1,427 @@
+\documentclass[runningheads]{llncs}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\begin{document}
+
+\title{KARMA: Knowledge Acquisition via Role-Invariant Mirror Architecture}
+
+\author{Tapas Ranjan Rath\inst{1}\orcidID{0009-0000-9221-7271}}
+\authorrunning{T. R. Rath}
+\institute{Department of Cognitive Science, Indian Institute of Technology Kanpur, India\\
+\email{tapasr@iitk.ac.in}}
+
+\maketitle
+
+\begin{abstract}
+As AI systems evolve from passive instruments to proactive agents---recommending
+actions, executing decisions, and increasingly acting on behalf of users across
+healthcare, finance, law, and social platforms---ensuring ethical alignment
+without degrading human autonomy becomes one of the central challenges of our
+time. Multi-agent virtual worlds and games offer a uniquely tractable testbed
+for this problem: interactions are observable, consequences are measurable, and
+governance interventions can be evaluated under controlled conditions without
+real-world harm. In this testbed, a critical tension emerges between enhancing
+user Sense of Agency (SoA) and preventing aggressive, unethical avatar
+behaviour. We propose the \textbf{Extended Self} framework: sufficiently
+personalised AI agents create \textit{Proxy Agency}, where users experience
+AI actions as extensions of their own volition. This preserves SoA but creates
+a moral blind spot---users implicitly endorse aggressive AI behaviour because
+they experience it as continuous with their own intent. Drawing on Indian
+Knowledge Systems (IKS), we map this onto the Vedic three-body ontology: the
+user ($\bar{a}tman$), the AI policy (s\={u}k\d{s}ma \'{s}ar\={\i}ra, subtle
+body), and the avatar body (sth\={u}la \'{s}ar\={\i}ra). We propose KARMA
+(Knowledge Acquisition via Role-Invariant Mirror Architecture), which trains
+the agent's subtle body via role-invariant contrastive learning---operating
+below the threshold of user awareness, analogous to procedural memory
+formation---to suppress aggressive behaviour without degrading SoA. Three
+empirically testable hypotheses are derived and grounded in the SoA and
+multi-agent RL literature. The framework generalises beyond gaming: the same
+architectural principles apply wherever agentic AI acts on behalf of humans,
+and the governance model points toward a real-world regulatory architecture
+of certified ethical agents operating at scale.
+\keywords{agentic AI \and AI ethics \and ethical alignment \and
+sense of agency \and metaverse governance \and Indian Knowledge Systems (IKS)}
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Background: The General Problem and the Testbed}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+As AI systems increasingly act as proactive agents on behalf of
+users---from autonomous driving and medical decision support to financial
+advisors and content curators---the question of how to preserve human agency
+while ensuring ethical behaviour becomes structurally unavoidable. Current
+alignment methods rely on explicit constraints or immediate dense supervision,
+which scale poorly to complex social environments and risk degrading the
+user's Sense of Agency (SoA)~\cite{neufeld22}.
+
+Mann~\cite{mann98} defines intelligent systems as integrated technologies with
+``humanistic intelligence'' that influence user behaviour or act on the user's
+behalf. In gaming contexts, these systems augment user actions through
+recommendation, prediction, and autonomous execution---a category Cornelio et
+al.~\cite{cornelio22} classify as \textbf{action augmentation}. The impact of
+intelligent systems on SoA within action augmentation remains critically
+understudied, making games a high-value testbed: interventions can be designed,
+measured, and iterated without the irreversible consequences of real-world
+deployment.
+
+SoA---the subjective experience of initiating voluntary actions and influencing
+the external world~\cite{pacherie11}---has been studied across spatiotemporally
+proximal and distal events~\cite{kumar14,kumar17} in line with the hierarchical
+event-control approach~\cite{jordan03}. Greater control is consistently
+correlated with enhanced SoA~\cite{chambon12,chambon14,sidarus17}. Achieving
+genuine cognitive coupling between human and machine remains a fundamental
+challenge~\cite{berberian19}, and automated features reduce SoA when they
+override rather than serve user intent~\cite{lukoff21}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Extended Self and the Moral Blind Spot}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Drawing on the Extended Mind thesis~\cite{clark98} and situated
+cognition~\cite{lave91}, I propose the \textbf{Extended Self} framework: when
+an AI system is sufficiently personalised---learning to act as a digital proxy
+for the user---it enables \textbf{Proxy Agency}~\cite{bandura01}: the user
+attributes AI actions to their own extended volition because the AI reliably
+enacts their intent. When \textbf{Semantic Fluency}---the cognitive ease with
+which AI recommendations align with user intent---is high, it functions as a
+prospective cue to agency~\cite{chambon12,wenke10,sidarus17}, and SoA is
+preserved even under partial automation.
+
+However, Proxy Agency creates an \textbf{Extended Self Paradox}: the same high
+SoA that makes the AI feel like a natural extension of the user also creates a
+\textbf{moral shield}---the user implicitly endorses the AI's actions, including
+aggressive or unethical ones, because those actions are experienced as continuous
+with their own volition. The user never perceives them as violations and
+therefore never intervenes. In multi-agent RL environments under resource
+scarcity, independent agents systematically converge to aggressive Nash
+equilibria~\cite{leibo17}, and a user whose avatar is augmented by such an
+agent will tacitly approve this convergence before any phenomenological loss of
+control surfaces. The same dynamic applies beyond games: an AI financial agent
+acting on a user's behalf may adopt increasingly aggressive strategies endorsed
+through Proxy Agency until systemic harm is already done~\cite{rajan11}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Three Hypotheses and Their Justification}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{H1: Player SoA follows an inverted-U function of the degree of
+AI augmentation}
+
+\textit{SoA increases at low-to-moderate Levels of Automation (LoA) as
+Semantic Fluency enhances Proxy Agency, and decreases at high LoA as
+autonomous AI action exceeds the user's threshold of intent recognition.}
+
+LoA describes the degree to which decision-making and execution are delegated
+to the AI, from full human control (LoA~=~0) to full
+autonomy~\cite{ueda21}. At low-to-moderate LoA, the AI acts as a recommender:
+its suggestions closely track user intent, Semantic Fluency is high, and the
+user experiences the AI as a proxy for their own volition---SoA rises. At high
+LoA, the AI overrides user intent with its own optimised actions; the user can
+no longer recognise their intentions in the agent's behaviour, the prospective
+cue to agency breaks down~\cite{chambon12}, automation complacency sets
+in~\cite{ueda21}, and SoA falls. The inverted-U is the novel prediction: its
+peak---the \textbf{zone of maximum Proxy Agency}---is also the point of deepest
+moral blind spot.
+
+\subsection*{H2: Even before a measurable drop in SoA scores, avatar
+aggressiveness will increase monotonically as the AI agent trains}
+
+\textit{Aggressiveness is operationalised as competitive beam-use rate under
+resource scarcity, following Leibo et al.~\cite{leibo17}.}
+
+Leibo et al.~\cite{leibo17} show in the Gathering game that agents use a laser
+beam exclusively to tag rivals---temporarily removing them to monopolise
+resources. The paper reports that ``differences in beam-use rate emerge quite
+early in training and mostly persist throughout; when learning changes beam-use
+rate, it is almost always to increase it.'' Aggression is not a sudden phase
+transition but a \textbf{monotonic increase} driven by the delayed reward of
+resource monopolisation, learnable once the agent's discount horizon ($\gamma$)
+is long enough to credit future gains from removing a rival.
+
+Our setup extends this with a \textbf{novel dual-use environment}: the beam can
+serve a cooperative function (clearing waste patches to enable apple regrowth)
+\textit{or} a competitive function (tagging rivals)---a strict generalisation
+of Leibo's purely-destructive design, mirroring how dual-use technologies are
+misappropriated in practice~\cite{greenblatt24}. At the peak of the H1
+inverted-U, the Proxy Agency moral shield is strongest: the user experiences
+the avatar's escalating aggression as their own volition and does not intervene
+until SoA eventually collapses.
+
+\subsection*{H3: Training the avatar agent on role-invariant representations,
+beyond the player's conscious knowledge, suppresses the aggression of H2
+without triggering the SoA drop of H1}
+
+The standard governance response---explicit punishment from a visible or
+invisible administrator---is a policy-level ``e-challan'': it surfaces the
+violation to the user's conscious awareness, attributes control to an external
+authority, and undermines Proxy Agency and SoA. The alternative is to target
+the \textbf{representational root} of aggression in the agent itself, below
+the user's conscious threshold.
+
+Neuroscience provides the grounding. Claparede~\cite{claparede} describes an
+amnesic patient who, despite lacking all declarative memory of prior encounters,
+withdrew her hand from a handshake without knowing why---her procedural memory
+had encoded ``this person~=~danger'' entirely independently of conscious recall.
+Bechara et al.~\cite{bechara95} extended this: patients with bilateral
+hippocampal damage who could not form explicit CS--US associations still
+developed conditioned autonomic responses. Procedural and emotional conditioning
+operate independently of declarative memory. Analogously, an avatar agent---and
+by extension any agentic AI---can acquire ethical dispositions through experience
+without the user ever becoming aware of the training mechanism.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{IKS Grounding: The Three-Body Mapping}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Indian philosophical traditions distinguish three bodies: the gross body
+(sth\={u}la \'{s}ar\={\i}ra) as the physical interface with the world; the
+subtle body (s\={u}k\d{s}ma \'{s}ar\={\i}ra) as the mind and its accumulated
+impressions (sa\d{m}sk\={a}ras); and the soul ($\bar{a}tman$) as the pure
+witness consciousness~\cite{reichenbach90,potter64,dasgupta23}. Karma operates
+on the subtle body---sa\d{m}sk\={a}ras accumulate as dispositional tendencies
+shaping future behaviour---while the $\bar{a}tman$ remains unaffected.
+
+Applied computationally: the \textbf{avatar body} maps to sth\={u}la
+\'{s}ar\={\i}ra (sensorimotor interface); the \textbf{on-board AI policy and
+value function} maps to s\={u}k\d{s}ma \'{s}ar\={\i}ra (the dispositional
+substrate where ethical learning accrues); and the \textbf{user} maps to
+$\bar{a}tman$ (the conscious experiencer of agency). Karma operates on the
+subtle body; the soul remains untouched. We propose KARMA (Knowledge Acquisition via Role-Invariant Mirror Architecture, elaborated in the next section). KARMA operates on the AI agent's value
+function; the user's SoA remains intact. This mapping specifies a
+\textbf{normative design constraint}---that ethical training must target the
+agent's representational substrate and must not surface signals to the user's
+conscious awareness.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The KARMA Architecture}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Standard multi-agent RL encoders represent ``I harm you'' and ``you harm me''
+as orthogonal latent states~\cite{hausknecht15}. Negative feedback from
+victimisation therefore fails to generalise to suppression of aggression---an
+\textbf{empathy gap}. We introduce KARMA: a recurrent agent augmented with a
+Siamese projector $f_\theta$ trained via contrastive loss to align structurally
+symmetric social observations~\cite{chen20,he20}:
+
+\begin{equation}
+    \mathcal{L}_{\text{KARMA}}
+    = \mathbb{E}\!\left[\,\|f_\theta(o_{\text{agg}})
+      - f_\theta(o_{\text{vic}})\|^2\,\right]
+    \label{eq:karma}
+\end{equation}
+
+where $o_{\text{agg}}$ encodes ``I aggress'' and $o_{\text{vic}}$ encodes ``I
+am victimised.'' By pulling these into nearby representational geometry,
+downstream RL value updates propagate aversion to harm-infliction without
+explicit rules~\cite{neufeld22}, hard constraints, or inverse RL from labelled
+demonstrations~\cite{hadfield16}. The learned invariance persists across
+episodes---computationally paralleling sa\d{m}sk\={a}ras as cross-episode
+dispositional imprints in the subtle body. For long-horizon environments,
+environment-level debt-based matchmaking~\cite{rath25}, Temporal Value
+Transport~\cite{hung19}, and return decomposition~\cite{arjona19} close the
+temporal credit assignment gap---the same structural problem formalised as
+``hidden gifts'' in multi-agent reinforcement-learning (MARL)~\cite{malenfant25}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Policy Implications: From Testbed to Real-World Governance}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The framework closes the loop back to the general problem of agentic AI
+governance. Content moderation and action restrictions function as policy-level
+e-challans: they surface violations, undermine user autonomy, and scale poorly.
+Greenblatt et al.~\cite{greenblatt24} show that sufficiently capable AI agents
+can learn to fake alignment under evaluation, making external constraint
+approaches fundamentally fragile.
+
+The alternative is \textbf{architectural certification}: mandating role-invariant
+learning mechanisms as a condition of AI agent registration, so that ethical
+behaviour is a structural property of the agent rather than an externally
+monitored output. Analogous to India's Aadhaar identity infrastructure, a
+national AI agent registry could assign unique agent identities and maintain
+auditable interaction logs, enabling accountability without real-time
+restriction. This trifurcates governance cleanly: \textbf{identity and
+accountability} (regulator), \textbf{ethical learning} (agent's subtle body /
+KARMA), and \textbf{freedom of action} (user / $\bar{a}tman$)---a separation
+absent from current frameworks including the EU AI Act and India's emerging AI
+policy, and one that the IKS three-body ontology articulates with a precision
+that Western governance frameworks have not yet achieved.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{thebibliography}{25}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\bibitem{arjona19}
+Arjona-Medina, J.A., et al.:
+RUDDER: Return decomposition for delayed rewards.
+NeurIPS~32 (2019)
+
+\bibitem{bandura01}
+Bandura, A.:
+Social cognitive theory: An agentic perspective.
+Ann. Rev. Psychol.~\textbf{52}, 1--26 (2001)
+
+\bibitem{bechara95}
+Bechara, A., et al.:
+Double dissociation of conditioning and declarative knowledge relative
+to the amygdala and hippocampus in humans.
+Science~\textbf{269}(5227), 1115--1118 (1995)
+
+\bibitem{berberian19}
+Berberian, B.:
+Man-Machine teaming: a problem of Agency.
+IFAC-PapersOnLine~\textbf{51}(34), 118--123 (2019)
+
+\bibitem{chambon12}
+Chambon, V., Haggard, P.:
+Sense of control depends on fluency of action selection, not motor
+performance. Cognition~\textbf{125}(3), 441--451 (2012)
+
+\bibitem{chambon14}
+Chambon, V., Sidarus, N., Haggard, P.:
+From action intentions to action effects: how does the sense of agency
+come about? Front. Hum. Neurosci.~\textbf{8}, 320 (2014)
+
+\bibitem{chen20}
+Chen, T., et al.:
+A simple framework for contrastive learning of visual representations.
+ICML, pp.~1597--1607 (2020)
+
+\bibitem{clark98}
+Clark, A., Chalmers, D.:
+The extended mind.
+Analysis~\textbf{58}(1), 7--19 (1998)
+
+\bibitem{claparede}
+Claparede, E.:
+Recognition and ``me-ness.''
+Consciousness and Cognition~\textbf{4}(4), 371--378 (1995).
+Original work published 1911
+
+\bibitem{cornelio22}
+Cornelio, P., et al.:
+The sense of agency in emerging technologies for human-computer
+integration: A review.
+Front. Neurosci.~\textbf{16}, 949138 (2022)
+
+\bibitem{dasgupta23}
+Dasgupta, S.:
+A History of Indian Philosophy, Vol.~1.
+Prabhat Prakashan (2023)
+
+\bibitem{greenblatt24}
+Greenblatt, R., et al.:
+Alignment faking in large language models.
+arXiv:2412.14093 (2024)
+
+\bibitem{hadfield16}
+Hadfield-Menell, D., et al.:
+Cooperative inverse reinforcement learning.
+NeurIPS~\textbf{29} (2016)
+
+\bibitem{hausknecht15}
+Hausknecht, M., Stone, P.:
+Deep recurrent Q-learning for partially observable MDPs.
+AAAI Fall Symposia, vol.~45, p.~141 (2015)
+
+\bibitem{he20}
+He, K., et al.:
+Momentum contrast for unsupervised visual representation learning.
+CVPR, pp.~9729--9738 (2020)
+
+\bibitem{hung19}
+Hung, C.C., et al.:
+Optimizing agent behavior over long time scales by transporting value.
+Nat. Commun.~\textbf{10}(1), 5223 (2019)
+
+\bibitem{jordan03}
+Jordan, J.S.:
+Emergence of self and other in perception and action.
+Conscious. Cogn.~\textbf{12}(4), 633--646 (2003)
+
+\bibitem{kumar14}
+Kumar, D., Srinivasan, N.:
+Naturalizing sense of agency with a hierarchical event-control approach.
+PLoS One~\textbf{9}(3), e92431 (2014)
+
+\bibitem{kumar17}
+Kumar, D., Srinivasan, N.:
+Multi-scale control influences sense of agency.
+Conscious. Cogn.~\textbf{49}, 1--14 (2017)
+
+\bibitem{lave91}
+Lave, J., Wenger, E.:
+Situated Learning: Legitimate Peripheral Participation.
+Cambridge University Press (1991)
+
+\bibitem{leibo17}
+Leibo, J.Z., et al.:
+Multi-agent reinforcement learning in sequential social dilemmas.
+AAMAS, pp.~464--473 (2017)
+
+\bibitem{lukoff21}
+Lukoff, K., et al.:
+How the design of YouTube influences user sense of agency.
+CHI, pp.~1--17 (2021)
+
+\bibitem{malenfant25}
+Malenfant, D., Richards, B.A.:
+The challenge of hidden gifts in multi-agent reinforcement learning.
+arXiv:2505.20579 (2025)
+
+\bibitem{mann98}
+Mann, S.:
+Humanistic computing: WearComp as a new framework.
+Proc. IEEE~\textbf{86}(11), 2123--2151 (1998)
+
+\bibitem{neufeld22}
+Neufeld, E.:
+Reinforcement learning guided by provable normative compliance.
+arXiv:2203.16275 (2022)
+
+\bibitem{pacherie11}
+Pacherie, E.:
+Self-Agency.
+In: Oxford Handbook of the Self, pp.~440--464.
+Oxford University Press (2011)
+
+\bibitem{potter64}
+Potter, K.H.:
+The naturalistic principle of Karma.
+Philos. East West~\textbf{14}(1), 39--49 (1964)
+
+\bibitem{rajan11}
+Rajan, R.G.:
+Fault Lines: How Hidden Fractures Still Threaten the World Economy.
+Princeton University Press (2011)
+
+\bibitem{rath25}
+Rath, T.R.:
+Scalable ethical alignment in agentic systems via retroactive
+credit assignment. Formal proposal, IIT Kanpur (2025)
+
+\bibitem{reichenbach90}
+Reichenbach, B.:
+The Law of Karma: A Philosophical Study.
+Springer (1990)
+
+\bibitem{sidarus17}
+Sidarus, N., et al.:
+Investigating the prospective sense of agency.
+Front. Psychol.~\textbf{8}, 545 (2017)
+
+\bibitem{ueda21}
+Ueda, S., et al.:
+Influence of levels of automation on the sense of agency.
+Sci. Rep.~\textbf{11}(1), 2436 (2021)
+
+\bibitem{wenke10}
+Wenke, D., Fleming, S.M., Haggard, P.:
+Subliminal priming of actions influences sense of control.
+Cognition~\textbf{115}(1), 26--38 (2010)
+
+\end{thebibliography}
+
+\end{document}

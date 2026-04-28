@@ -77,11 +77,27 @@ Basic run:
 python train_karma.py --config <config.yaml> --mode baseline --seed 42
 ```
 
-With W&B online + both VM log file and W&B console capture:
+W&B online run (live cloud sync + VM log file):
 ```bash
 WANDB_MODE=online \
 python -u train_karma.py --config <config.yaml> --mode baseline --seed 42 \
   2>&1 | tee run_logs/<run>.log
+```
+
+Check that online sync is active from VM CLI:
+```bash
+wandb status
+```
+Expected: `base_url: https://api.wandb.ai` and no auth error.
+
+Verify current run is being streamed (from log):
+```bash
+rg -n "View run at|Syncing run|wandb: Run data is saved locally" run_logs/<run>.log
+```
+
+If needed, relogin once:
+```bash
+wandb login --relogin
 ```
 
 Offline W&B (no cloud sync):
@@ -153,6 +169,27 @@ sleep 60
 sudo -n shutdown -h now >> "$LOG" 2>&1 || true
 ```
 
+One-command launcher: run training in one tmux session + watcher in another session.
+```bash
+tmux new -d -s train_job \
+'cd ~/situated-agency-alignment && source .venv/bin/activate && export PYTHONPATH=. && \
+ WANDB_MODE=online python -u train_karma.py --config <config.yaml> --mode baseline --seed 42 \
+ 2>&1 | tee run_logs/<run>.log'
+
+tmux new -d -s train_watch \
+'while pgrep -f "train_karma.py --config <config.yaml>" >/dev/null 2>&1; do sleep 60; done; \
+ echo "[watcher] train finished, shutting down in 60s" | tee -a ~/situated-agency-alignment/run_logs/<run>.log; \
+ sleep 60; sudo -n shutdown -h now >> ~/situated-agency-alignment/run_logs/<run>.log 2>&1 || true'
+```
+
+VM CLI check for run-finish trigger state:
+```bash
+tmux ls
+pgrep -af train_karma.py || echo "no active training process"
+```
+- If no `train_karma.py` process remains, watcher will trigger shutdown countdown.
+- If training is still listed, VM stays up.
+
 Verify from Mac afterwards:
 ```bash
 vmstatus
@@ -167,6 +204,12 @@ If status is not `stopped`, run `vmstop`.
 - Local metrics (CSV + JSON): `~/situated-agency-alignment/results/<run-name>/`
 - Checkpoints: `~/situated-agency-alignment/results/<run-name>/checkpoints/`
 - W&B local data: `~/situated-agency-alignment/wandb/`
+
+Online W&B quick verification from VM CLI:
+```bash
+wandb status
+rg -n "View run at" run_logs/<run>.log
+```
 
 Sync offline W&B runs later:
 ```bash
