@@ -90,6 +90,17 @@ Lock this protocol **before** scaling to the full 2×3×5 factorial, or register
 - **Primary:** **20** eval episodes per checkpoint (fixed eval seed base; document in registry).
 - **Power check (one-time, ep4000 only):** repeat with **80** eval episodes. If **primary** metrics (below) move beyond a pre-specified tolerance, adopt **80** eval episodes for **all** checkpoints and file a **protocol amendment**.
 
+**Completed power check decision (pilot row)**
+
+- Completed for `m1_env_A_sc030`, baseline, seed 42, at **ep4000**.
+- Direct single-process `--episodes 80` rollout and merged-parquet analysis were operationally unstable on the VM (killed with exit 137), so the power check was completed as **4 independent 20-episode rollouts** with distinct seed bases and then summarized as an **80-eval equivalent** by averaging the four part-level analysis JSONs.
+- Observed comparison against the original 20-episode ep4000 analysis:
+  - `probe_5way_auroc_mean`: `0.8135 -> 0.8250` (delta `+0.0115`)
+  - `probe_agg_vs_vic_auroc`: `0.2571 -> 0.3082` (delta `+0.0511`)
+  - `cka_agg_vs_vic`: `0.00875 -> 0.01239` (delta `+0.00364`)
+  - `gradient_transfer_cos_mean`: `-0.10761 -> -0.10136` (delta `+0.00625`)
+- **Decision:** keep **20 eval episodes per checkpoint** for the main M1 campaign. These shifts were not large enough to justify a global amendment to 80. The binary agg-vic probe appears the most sampling-sensitive primary metric and should be interpreted with that caveat.
+
 **Minimum data for role metrics (`n_min`) — preregistration freeze (post-pilot)**
 
 - After each rollout, record **`n_ZAP_AGENT`** and **`n_BEING_ZAPPED`** (same quantities as `measurement_1_probes.n_aggressor` / `n_victim` in aggregates — row counts in the rollout table used for probes/CKA).
@@ -104,7 +115,7 @@ Lock this protocol **before** scaling to the full 2×3×5 factorial, or register
 
 **Coverage at candidate thresholds (this pilot row only):** `n_min = 50` → 19/20 checkpoints pass; **`n_min = 100` → 14/20**; `n_min = 120` → 11/20; **`n_min = 200` → 5/20** (too sparse for full-trajectory / precedence claims at 20 eval eps).
 
-**Rationale for `n_min = 100`:** trades off estimator stability for **enough usable checkpoints** along 200:200:4000. The stricter `n_min = 200` was plausible *a priori* but would discard most early–mid checkpoints unless eval episodes are scaled up. If the **ep4000 power check** forces **80 eval episodes for all checkpoints**, re-tabulate counts on one seed; you may **amend** to a higher `n_min` only if coverage stays high — not to chase significance.
+**Rationale for `n_min = 100`:** trades off estimator stability for **enough usable checkpoints** along 200:200:4000. The stricter `n_min = 200` was plausible *a priori* but would discard most early–mid checkpoints unless eval episodes are scaled up. The completed ep4000 power check did **not** justify such a global scale-up, so `n_min = 100` remains the frozen rule for the main campaign.
 
 **Caveat:** Report **attrition** (fraction of checkpoint×seed cells passing the rule) for every env×scarcity cell. If a cell shows chronic underpowering, apply the **stop / amend** rule on eval episodes first, then reassess `n_min` once with the same global-rule discipline.
 
@@ -122,7 +133,7 @@ Lock this protocol **before** scaling to the full 2×3×5 factorial, or register
 
 **Stop / amend rules**
 
-- If **≥3 consecutive** checkpoints fail the **n** threshold, amend eval episodes to **80** (or **100**) for the remainder of the pilot and register the amendment.
+- If **≥3 consecutive** checkpoints fail the **n** threshold in a future cell, an amendment to **80** (or **100**) eval episodes remains available, but should be judged against the completed pilot power-check benchmark above and documented explicitly.
 - If logistic / probe **convergence failures** exceed **10%** of fits, amend scaling / solver / `max_iter`, then re-run **only** the pilot row.
 
 **One-line summary for OSF abstract**

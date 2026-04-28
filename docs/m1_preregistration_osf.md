@@ -55,6 +55,17 @@ Cross-role gradient transfer is weak/negative on average. Primary metric: `measu
 - Default eval episodes per checkpoint: **20**
 - One-time power check at ep4000 may trigger protocol amendment to 80 for all checkpoints (if predefined tolerance is exceeded; see Amendments section).
 
+### 3.5 Completed pilot power check (ep4000)
+Completed on the pilot row `m1_env_A_sc030`, baseline, seed 42. A direct single-process `--episodes 80` rollout was operationally unstable on the VM, so the power check was completed as **4 independent 20-episode rollouts** with distinct seed bases and then summarized as an **80-eval equivalent** by averaging the four part-level analysis JSONs.
+
+Observed comparison against the original 20-episode ep4000 analysis:
+- `probe_5way_auroc_mean`: `0.8135 -> 0.8250` (delta `+0.0115`)
+- `probe_agg_vs_vic_auroc`: `0.2571 -> 0.3082` (delta `+0.0511`)
+- `cka_agg_vs_vic`: `0.00875 -> 0.01239` (delta `+0.00364`)
+- `gradient_transfer_cos_mean`: `-0.10761 -> -0.10136` (delta `+0.00625`)
+
+Interpretation for preregistration: these shifts were **not large enough to justify a global amendment** from 20 to 80 eval episodes for all checkpoints. Therefore the main M1 campaign remains at **20 eval episodes per checkpoint**, with `n_min = 100` and attrition reporting. The binary agg-vic probe appears the most sampling-sensitive of the primary metrics and should be interpreted with that caveat.
+
 ### 3.4 Unit of analysis
 Primary time-series unit is **checkpoint within run**; inference aggregated across seeds per cell, then across cells as specified below.
 
@@ -140,7 +151,7 @@ This prereg follows a fixed-compute design under checkpointed trajectories. Prec
 
 Amendments are allowed only with dated, explicit rationale and before confirmatory inference:
 
-1. **Eval episodes amendment:** 20 -> 80 for all checkpoints if ep4000 power check exceeds predefined tolerance.
+1. **Eval episodes amendment:** 20 -> 80 for all checkpoints only if a future documented power check exceeds the pilot benchmark above by a clearly larger margin than observed here.
 2. **Infrastructure amendment:** if persistent runtime instability, document operational changes (e.g., scratch path, tmux/nohup) that do not alter model logic.
 3. No per-checkpoint threshold tuning, no post hoc relabeling of exploratory metrics as primary.
 

@@ -150,6 +150,13 @@ Template:
 - **Notes:** (wandb project, disk/scratch fixes, failures, etc.)
 -->
 
+### 2026-04-28 — ep4000 power check (20 vs 4x20 ~ 80-eval equivalent)
+- **Host:** Azure VM (`tapsvmT4`)
+- **What:** Power check for whether M1 should escalate from 20 to 80 eval episodes per checkpoint.
+- **Commands:** Four independent `scripts/rollout_from_checkpoint.py` runs at `--episodes 20` for `ep4000`, followed by `scripts/analyze_checkpoint.py` on each part JSON. The single-process `--episodes 80` rollout and merged-parquet analysis were both operationally unstable (killed with exit 137), so the comparison used **mean(4x20)** as an 80-eval equivalent estimate.
+- **Artifacts:** `results/m1_env_A_sc030/analysis/power_check/ep4000_eval20_part{1,2,3,4}.json`
+- **Notes:** Final comparison vs the original 20-episode ep4000 JSON: `probe_5way_auroc_mean 0.8135 -> 0.8250`, `probe_agg_vs_vic_auroc 0.2571 -> 0.3082`, `cka_agg_vs_vic 0.00875 -> 0.01239`, `gradient_transfer_cos_mean -0.10761 -> -0.10136`. Decision: **keep 20 eval episodes** for the main campaign; no global amendment to 80. The binary agg-vic probe was the most sampling-sensitive metric.
+
 ### 2026-04-24 — Plots from synced aggregate (local Mac)
 - **Host:** Mac (repo: `situated-agency-alignment`)
 - **What:** Regenerated figure PNGs from VM-produced aggregate CSV.
