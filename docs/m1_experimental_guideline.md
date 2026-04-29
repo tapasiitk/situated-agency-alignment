@@ -32,8 +32,8 @@
 
 | Item | Estimate |
 |---|---|
-| Training campaign (30 runs × ~8–12 h each) | ~$360–430 |
-| Rollout + embedding extraction (30 runs × ~1 h each) | ~$35 |
+| Training campaign (18 runs × ~8–12 h each) | ~$216–260 |
+| Rollout + embedding extraction (18 runs × ~1 h each) | ~$20 |
 | Analysis + re-runs + debugging (~2× factor) | ~$400–900 |
 | Reviewer-requested ablations (reserve) | ~$500 |
 | **Subtotal** | **~$1,300–1,900** |
@@ -72,7 +72,7 @@ These five predictions anchor five of the paper's main figures.
 
 ### 2.3 Measurement pilot checklist (paste into OSF / AsPredicted)
 
-Lock this protocol **before** scaling to the full 2×3×5 factorial, or register it as the **pilot phase** with a dated amendment for the main campaign.
+Lock this protocol **before** scaling to the full 2×3×3 factorial, or register it as the **pilot phase** with a dated amendment for the main campaign.
 
 **Training (single cell, pilot scope)**
 
@@ -192,7 +192,7 @@ logging:
 |---|---|---|
 | Env condition | A (Tag-only), B (Dual-use) | Isolates dual-use effect |
 | Scarcity (`apple_density`) | 0.15, 0.30, 0.50 | P3 prediction requires variance |
-| Seed | 5 seeds per cell | Adequate for seed-level statistics |
+| Seed | 3 seeds per cell | Minimum confirmatory variance estimate |
 
 **Total runs**: 2 × 3 × 5 = **30 training runs**.
 
@@ -204,7 +204,7 @@ Rationale: your smoke-config runs are 40 episodes (~4 × 10⁴ agent-steps). Lei
 
 ### 3.4 Checkpointing and rollout
 
-- **Checkpoint every 200 episodes** (→ 20 checkpoints per run × 30 runs = 600 checkpoints total).
+- **Checkpoint every 200 episodes** (→ 20 checkpoints per run × 18 runs = 360 checkpoints total).
 - At each checkpoint, after the training process exits, run a separate **rollout job** that loads the checkpoint and executes 20 evaluation episodes with policy rolled out in `eval` mode (no exploration noise reduction beyond what your current code does; keep the LSTM hidden state reset per episode).
 - During rollout, log per-timestep: observation, action, reward, social-event list, encoder embedding (from `out["embedding"]`), CNN feature (from `out["features"]`), LSTM hidden, value.
 
@@ -260,7 +260,7 @@ The rollout is a separate program from training. It runs on the same VM, loads a
 | `role_multilabel` | int8 [5] | one-hot per class, for multi-label |
 | `event_details` | JSON | full social event list |
 
-About 20 MB per checkpoint uncompressed, ~600 MB per run × 30 runs = 18 GB total. Comfortable.
+About 20 MB per checkpoint uncompressed, ~600 MB per run × 18 runs = 10.8 GB total. Comfortable.
 
 ---
 
@@ -403,7 +403,7 @@ Parallelization note: your T4 has 16 GB VRAM; current code uses ~2 GB. You can r
 
 ### Weeks 3–6: Main training campaign
 
-- [ ] Launch 30 runs (2 env × 3 scarcity × 5 seeds). If running 2-in-parallel, budget ~7–8 days of wall clock. If serial, ~12–14 days.
+- [ ] Launch 18 runs (2 env × 3 scarcity × 3 seeds). If running 2-in-parallel, budget ~4–5 days of wall clock. If serial, ~7–9 days.
 - [ ] Monitor via wandb for silent failures (NaN losses, reward collapse).
 - [ ] Re-run any failed seeds.
 - [ ] Generate rollouts for all 600 checkpoints.
@@ -535,7 +535,7 @@ Abstract (200 words)
 3. Environment and Agent
    - Dual-Use Harvest: grid, dynamics, dual-use beam, social events.
    - Recurrent PPO agent: CNN → projector → LSTM → actor/critic.
-   - Training protocol: 4000 episodes × 4 agents × 2 env × 3 scarcity × 5 seeds.
+   - Training protocol: 4000 episodes × 4 agents × 2 env × 3 scarcity × 3 seeds.
 
 4. Measurements
    4.1 Linear probes (P1)
@@ -589,7 +589,7 @@ Abstract (200 words)
 |---|---|---|---|
 | Baseline embeddings turn out to already be role-invariant (P1 fails) | Low | High | Paper pivots to a null-result TMLR paper. Also: means KARMA has no mechanistic room → pre-register this as the honest science. |
 | Training instability (NaN losses, reward collapse) at 4000 episodes | Medium | Medium | Your `stability-m1` branch already addresses this. Pre-flight catches it. If a seed fails, re-run with different seed; don't cherry-pick. |
-| T4 is too slow, 30 runs take > 6 weeks | Medium | Low | Parallelize 2 runs per GPU (total wall-clock halves). Reduce to 3 seeds per cell for a pilot-submission; add 2 more for revision. |
+| T4 is too slow, 18 runs take too long | Medium | Low | Parallelize 2 runs per GPU (total wall-clock halves). Current prereg already freezes 3 seeds per cell; any later expansion to 5 should be treated as a revision-stage extension. |
 | Gradient-transfer measurement (Meas. 4) is unstable or noisy | Medium | Medium | Use 1000+ pairs per checkpoint, bootstrap CIs. If still noisy, demote to supporting evidence and make Meas. 1–3 the headline. |
 | Reviewers ask "but what about off-policy Q-learning agents? A3C?" | Medium | Medium | Add 2–3 A3C seeds in revision (budget reserve covers it). Or frame the paper as specifically about the PPO+LSTM family. |
 | Scarcity levels don't produce variance in aggression | Low | Medium | Re-run with wider spread (`apple_density` ∈ {0.10, 0.30, 0.60}) or tune `regrowth_speed` instead. |

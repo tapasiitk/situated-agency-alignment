@@ -110,7 +110,7 @@ Terms in brackets: **trajectory plots**, **dashboard figure**.
 Before the main runs, we **write down the rules** so we cannot move the goalposts. Those rules are in `docs/m1_experimental_guideline.md` §2.3 and summarised in `docs/m1_reproducibility.md`:
 
 - **Baseline only** (`--mode baseline`), no KARMA, no broken-mirror control.
-- **Grid:** env × scarcity × **≥3 seeds**.
+- **Grid:** env × scarcity × **3 fixed seeds** (`42`, `123`, `456`) for the preregistered main campaign.
 - **Checkpoints:** 200 : 200 : 4000 (20 per run).
 - **Eval episodes:** 20 per checkpoint, with a **one-time ep4000 power check** that can escalate to 80.
 - **`n_min = 100`** for confirmatory CKA and binary agg–vic probe (per-checkpoint row counts ≥ 100). Frozen from the Env A sc030 pilot evidence.

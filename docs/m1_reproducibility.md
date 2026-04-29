@@ -129,7 +129,7 @@ bash scripts/m1_smoke.sh 1
 
 ## Pilot vs confirmatory runs
 
-- **Pilot (engineering):** Goal is to verify the **pipeline** (train → trajectory batch → aggregate → plots) and spot bugs or unstable configs. The guideline’s **single pilot cell** (`m1_env_A_sc030.yaml`, 4000 ep, checkpoints 200:200:4000, 20 eval eps) exists to stress-test analysis and **precedence** claims before scaling the **2×3×5** (or similar) baseline factorial.
+- **Pilot (engineering):** Goal is to verify the **pipeline** (train → trajectory batch → aggregate → plots) and spot bugs or unstable configs. The guideline’s **single pilot cell** (`m1_env_A_sc030.yaml`, 4000 ep, checkpoints 200:200:4000, 20 eval eps) exists to stress-test analysis and **precedence** claims before scaling the **2×3×3** baseline factorial.
 - **Confirmatory / paper (M1):** Lock **primary vs exploratory** metrics, **env × scarcity × seeds** (baseline only), checkpoint cadence, eval episodes, and **`n_min = 100`** for CKA/binary agg–vic (row counts `n_ZAP_AGENT`, `n_BEING_ZAPPED`) — see §2.3 of `docs/m1_experimental_guideline.md` for the pilot table and rationale. If the ep4000 power check escalates to **80** eval episodes, follow the guideline’s amendment rule before considering a stricter `n_min`. **M2** (KARMA intervention) is a **separate** preregistration after M1 motivates it.
 
 If the guideline doc lists M1 hypotheses and metrics, align the prereg with `docs/m1_experimental_guideline.md` so GitHub configs + this checklist match what you register.

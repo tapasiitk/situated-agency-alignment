@@ -45,10 +45,24 @@ CKPT_DIR="${RESULTS_DIR}/checkpoints"
 ANALYSIS_DIR="${RESULTS_DIR}/analysis/trajectory_${RUN_PREFIX}"
 
 # Parquets: use a writable scratch path so the OS root volume is not exhausted.
-# - Azure often mounts a large ephemeral disk at /mnt but leaves it root-owned; create a
-#   writable subdir once:  sudo mkdir -p /mnt/karma_m1_scratch && sudo chown "$USER:$USER" /mnt/karma_m1_scratch
+# - Azure often mounts a large ephemeral disk at /mnt but leaves it root-owned.
+#   We make a best-effort non-interactive sudo attempt to create a writable
+#   subdir there; if that fails, we fall back automatically.
 # - If /mnt is not writable, we fall back to /dev/shm (tmpfs, typically ~50G+ on NC VMs).
 # - Override entirely: M1_SCRATCH_ROOT=/path
+ensure_mnt_scratch_if_possible() {
+  if [[ -n "${M1_SCRATCH_ROOT:-}" ]]; then
+    return
+  fi
+  if [[ -d /mnt/karma_m1_scratch && -w /mnt/karma_m1_scratch ]]; then
+    return
+  fi
+  if [[ -d /mnt ]]; then
+    sudo -n mkdir -p /mnt/karma_m1_scratch 2>/dev/null || true
+    sudo -n chown "$USER:$USER" /mnt/karma_m1_scratch 2>/dev/null || true
+  fi
+}
+
 pick_scratch_parent() {
   if [[ -n "${M1_SCRATCH_ROOT:-}" ]]; then
     echo "${M1_SCRATCH_ROOT}"
@@ -71,6 +85,7 @@ pick_scratch_parent() {
   echo ""
 }
 
+ensure_mnt_scratch_if_possible
 SCRATCH_PARENT="$(pick_scratch_parent)"
 
 if [[ -n "$SCRATCH_PARENT" ]]; then
