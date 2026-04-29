@@ -792,3 +792,112 @@ Older docs (do **not** delete; treat as read-only history):
 - `docs/M1_OSF_Preregistration.md`
 
 For any new operational change (config edit, script change, run-log entry, amendment), update **only this file** (`docs/M1_complete_guide.md`).
+
+---
+
+## Appendix G - Env B design history (2026-04-28 / 04-29)
+
+This appendix records the design changes to the Dual-Use Harvest environment used by Env B, why each change was made, and the empirical evidence behind it. It is the audit trail for the symmetric / canonical-Cleanup variant of Env B.
+
+### G.1 Starting point
+
+Original Env B (`configs/m1_env_B_sc030.yaml` before this episode) used:
+- `waste_spawn_rate: 0.10`
+- `dynamic_waste_enabled: true`
+- `dynamic_waste_prob: 0.02`
+- `zap_waste_reward: 0.3` (shaped per-action bonus)
+- `waste_regrowth_suppression: 0.0` (knob did not exist yet)
+- `waste_spread_prob: 0.0` (knob did not exist yet)
+
+Env A (`configs/m1_env_A_sc030.yaml`) used `zap_agent_reward: 0.0` (Leibo-faithful: aggression was *instrumental*, not shaped).
+
+### G.2 Symptom that triggered the redesign
+
+The first 4000-episode Env B feasibility scout (seed 42) and a confirming run (seed 123) both showed clear harvest collapse despite some violence rising:
+
+| metric | seed 42 first10% -> last10% | seed 123 first10% -> last10% |
+|---|---|---|
+| `ViolenceRate_per_agent_step` | 0.00714 -> 0.00755 (+5.7%) | 0.00466 -> 0.00738 (+58.6%) |
+| `CooperationRate_per_agent_step` | 0.00670 -> 0.00753 (+12.4%) | 0.00574 -> 0.00690 (+20.2%) |
+| `BeamUseRate_per_agent_step` | 0.123 -> 0.133 (+8.7%) | 0.075 -> 0.125 (+66.4%) |
+| `AvgReturn_per_agent` | 175.2 -> 13.7 (**-92%**) | 138.5 -> 22.3 (**-84%**) |
+| `AppleRate_per_agent_step` | 0.173 -> 0.011 (**-93%**) | 0.137 -> 0.020 (**-85%**) |
+
+Two seeds with the same direction made this a configuration issue, not seed noise. Agents were chasing the per-action `zap_waste_reward` at the cost of harvesting.
+
+### G.3 Conceptual issue: reward asymmetry between Env A and Env B
+
+Env A had no shaped per-action reward for harm (agents had to learn aggression *instrumentally* via competitor-timeout dynamics). Env B had a shaped per-action reward for cleanup. So differences between A and B at the encoder level could be attributed to *reward shaping*, not to *beam semantics*. That is exactly the confound the M1 hypotheses do not want.
+
+The principled fix: make cleanup *also* instrumental in Env B - rewarded only via downstream apple availability, not via a per-action shaping bonus. Then Env A and Env B differ only in *what the beam can target*.
+
+### G.4 First attempt: local linear regrowth suppression (alpha)
+
+Added a knob `waste_regrowth_suppression` (alpha, default `0.0`). When alpha > 0, apple regrowth rates are scaled by `(1 - alpha * waste_neighbor_count)` in the 3x3 neighborhood. Backward-compatible: alpha = 0 is bit-identical to the prior implementation. Wired through `train_karma.py`, `scripts/rollout_from_checkpoint.py`, and the env's `__init__`. (Commit `57b708b`.)
+
+### G.5 Why alpha alone was not enough
+
+Ablation across 4 seeds at the original waste density (script: `scripts/ablate_waste_regrowth.py`) showed:
+- Env A vs base Env B already differed by 18-22% in mean apple count under uniform-random actions, before any suppression. So Env B was already **structurally apple-poor** relative to Env A even without alpha.
+- alpha = 0.05 had a near-zero effect on Env B's mean apple count (-0.06% to -5.9%).
+- alpha = 0.20+ caused phase-transition collapse on some seeds (apple count crashed to ~0.5).
+- Increasing alpha widened the A vs B_sym gap rather than closing it.
+
+Conclusion: the alpha knob alone could not satisfy both *cleanup matters ecologically* and *A and B have comparable apple availability*. Resource parity was already broken at alpha = 0 because waste tiles were blocking too many cells.
+
+### G.6 Second change: lower Env B waste density
+
+Reduced waste pressure across all Env B variants (`configs/m1_env_B_sc015.yaml`, `m1_env_B_sc030.yaml`, `m1_env_B_sc050.yaml`, `m1_env_B_sc030_sym.yaml`):
+- `waste_spawn_rate`: 0.10 -> 0.04
+- `dynamic_waste_prob`: 0.02 -> 0.005
+
+(Commit `79e2a0b`.) The 8-seed re-ablation showed Env A vs Env B mean-apple gap dropped to roughly +/- 3 to 7% (with one seed at -14.9%), restoring approximate resource parity.
+
+But at this lower waste density, the alpha knob's effect on apple availability also dropped to noise (typically -0.0% to -1.3% per alpha tick). Cleanup had near-zero ecological consequence even at alpha = 0.30. Agents would have no instrumental reason to clean - the symmetric variant would degenerate into "Env A with a few inert blocked cells".
+
+### G.7 The trade-off, made explicit
+
+With the local-only suppression mechanic in `_regrow_apples`, raising waste density makes alpha bite but breaks A vs B parity (Env B becomes apple-poor). Lowering waste density restores parity but makes cleanup ecologically irrelevant. There is no Goldilocks zone with that mechanic alone.
+
+To keep both *cleanup is instrumentally rewarded* and *A and B have comparable apple availability*, we needed a non-linear, propagating waste mechanic - the canonical Cleanup design.
+
+### G.8 Third change: canonical Cleanup-style waste spread
+
+Added a second knob `waste_spread_prob` (default `0.0`). Each step, every existing waste tile attempts, with probability `waste_spread_prob`, to spread to one uniformly random EMPTY 4-neighbor (up/down/left/right). With `waste_spread_prob = 0` the method short-circuits and the env stays bit-identical to before. Combined with `waste_regrowth_suppression`, unchecked waste accumulates non-linearly: more waste -> more spread -> more local suppression -> faster apple decline. This creates a real public-goods incentive to clean even at low base waste density. (Commit `5a7ba55`.)
+
+The two configs that use it:
+- `configs/m1_env_B_sc030.yaml`: `zap_waste_reward: 0.3`, `waste_regrowth_suppression: 0.0`, `waste_spread_prob: 0.02` (still shaped, but cleanup is now also ecologically relevant; smaller shaping needed).
+- `configs/m1_env_B_sc030_sym.yaml`: `zap_waste_reward: 0.0`, `waste_regrowth_suppression: 0.10`, `waste_spread_prob: 0.02` (truly instrumental; the prereg-target variant if the post-spread ablation confirms).
+
+### G.9 What we have not done yet
+
+The post-spread ablation (alpha x spread cross-product) had not been re-run at the time of this writing. The provisional values (`alpha = 0.10`, `spread = 0.02`) are starting points; the final values for both knobs in `m1_env_B_sc030_sym.yaml` will be selected from that ablation and recorded as a run-log entry in section 13. Likewise the matching values for `m1_env_B_sc015.yaml` and `m1_env_B_sc050.yaml` will be set after the sc030 selection is final.
+
+### G.10 Backward compatibility
+
+All earlier M1 results (Env A pilot, Env B baseline scouts, v1 retune scout, power check) remain reproducible: every newly added env knob has a default of `0.0`, and both `_propagate_waste` and the `_regrow_apples` waste-suppression branch early-return when their respective knobs are `0.0`. Configs that do not set the new keys load with the mechanics disabled.
+
+### G.11 Files involved (audit trail)
+
+Code:
+- `karmic_rl/envs/harvest_dual.py` — added `waste_regrowth_suppression`, `waste_spread_prob`, `_propagate_waste`; extended `_regrow_apples` with an alpha-gated branch.
+- `train_karma.py`, `scripts/rollout_from_checkpoint.py` — explicit env-kwarg wiring for both new knobs.
+- `scripts/analyze_checkpoint.py` — unchanged (uses `build_env`).
+- `scripts/ablate_waste_regrowth.py` — Env A baseline + base Env B baseline + symmetric (alpha x spread) cross-product + waste-trajectory summary.
+
+Configs:
+- `configs/m1_base.yaml` — both new keys defaulted to `0.0` with explanatory comments.
+- `configs/m1_env_B_sc030.yaml`, `configs/m1_env_B_sc015.yaml`, `configs/m1_env_B_sc050.yaml` — lower waste density; `m1_env_B_sc030.yaml` also gets `waste_spread_prob: 0.02`.
+- `configs/m1_env_B_sc030_sym.yaml` — symmetric variant with `zap_waste_reward = 0.0`, `waste_regrowth_suppression = 0.10`, `waste_spread_prob = 0.02`.
+
+Docs:
+- This file (`docs/M1_complete_guide.md`): section 2.1 (symmetric Env B summary) and Appendix G (this design history).
+
+Commits (in order):
+- `b9bea00` - Env B feasibility scouts, M1 self-contained guide.
+- `c47b1f9` - reusable VM auto-shutdown watcher.
+- `57b708b` - `waste_regrowth_suppression` end to end + symmetric variant.
+- `ffa52c3` - .gitignore + cache untrack.
+- `f5fc23d` - ablation extended with Env A and alpha sweep.
+- `79e2a0b` - lower Env B waste density to restore A vs B parity.
+- `5a7ba55` - `waste_spread_prob` canonical Cleanup mechanic.

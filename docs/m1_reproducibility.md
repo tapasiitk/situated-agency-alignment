@@ -150,6 +150,34 @@ Template:
 - **Notes:** (wandb project, disk/scratch fixes, failures, etc.)
 -->
 
+### 2026-04-29 — Env B feasibility scouts and symmetric Env B calibration
+- **Host:** Azure VM (`tapsvmT4`) for training; Mac for ablation analysis.
+- **Why this happened:** before locking the OSF preregistration we tested whether **Env B (dual-use)** at `sc030` was actually viable as a confirmatory cell, and whether the design is **scientifically symmetric** to Env A (where aggression is purely instrumental, `zap_agent_reward = 0.0`).
+- **Stage 1 - Env B baseline 4k scouts (original `m1_env_B_sc030.yaml`).**
+  - Seed 42 and seed 123 each trained for 4000 episodes with `WANDB_MODE=online`.
+  - Both seeds showed **healthy aggression growth** but **harvest collapse**: `AvgReturn_per_agent` dropped 84-92% from first-10% to last-10% window; `AppleRate_per_agent_step` dropped 85-93%. `BeamUseRate_per_agent_step` rose, indicating agents over-invested in beam use targeting waste (driven by `zap_waste_reward = 0.3`) at the cost of harvesting.
+  - Conclusion: original Env B is **not safe to preregister** because the shaping reward dominates ecology.
+- **Stage 2 - Env-pressure retune scouts (v1, 2k episodes).**
+  - `m1_env_B_sc030_v1`: `waste_spawn_rate 0.10 -> 0.05`, `dynamic_waste_prob 0.02 -> 0.01`, `zap_waste_reward 0.3 -> 0.2`, episodes=2000, seed 42.
+  - Result: `AvgReturn_per_agent -43%` (better than -92% but **still collapsing**).
+- **Stage 3 - Symmetry argument and `waste_regrowth_suppression`.**
+  - Decision: instead of lowering shaping, **remove it** (`zap_waste_reward = 0.0`) and make cleanup **truly instrumental** by letting waste suppress nearby apple regrowth. Implementation: new env knob `waste_regrowth_suppression` (alpha) added to `karmic_rl/envs/harvest_dual.py`, plumbed through `train_karma.py` and `scripts/rollout_from_checkpoint.py`. Defaults to `0.0` so prior runs are bit-identical.
+  - New file `configs/m1_env_B_sc030_sym.yaml` with `zap_waste_reward: 0.0` and `waste_regrowth_suppression: 0.05`.
+  - New no-agent ablation `scripts/ablate_waste_regrowth.py` (uniform random actions, fixed seed).
+- **Stage 4 - Alpha sweep at original waste density (`waste_spawn_rate=0.10`, 4 seeds).**
+  - alpha=0.05 effect was noise (-0.06% mean apples on seed 0); alpha=0.30 caused **catastrophic collapse** on seed 2 (mean apples 0.53). High variance across seeds; no Goldilocks zone.
+- **Stage 5 - Reduce Env B waste density and re-ablate (8 seeds).**
+  - All Env B configs (`m1_env_B_sc015/030/050.yaml` + `m1_env_B_sc030_sym.yaml`) updated: `waste_spawn_rate: 0.10 -> 0.04`, `dynamic_waste_prob: 0.02 -> 0.005`. (Env A unchanged.)
+  - Result with reduced waste: A vs B base apple parity is now reasonable (mean delta -3.4%, range -14.9% to +7.2% across seeds). **But** the alpha knob is essentially ineffective at this waste density: even alpha=0.30 changes mean apples by only 0.05-1.3% versus alpha=0. Reason: at ~2-5 mean waste cells, the average empty cell sees almost no waste neighbors, so linear neighborhood-suppression cannot bite.
+- **Stage 6 - Add canonical Cleanup-style `waste_spread_prob`.**
+  - Hypothesis: linear local suppression alone cannot make cleanup instrumental at safe waste densities. We need a **non-linear** mechanic where unchecked waste **grows**.
+  - Implementation: new env knob `waste_spread_prob` and a `_propagate_waste()` step in `karmic_rl/envs/harvest_dual.py`: each existing WASTE cell, every step, with probability `waste_spread_prob`, spreads to one uniformly random EMPTY 4-neighbor. Backward compatible (default 0.0; with `spread=0` and `alpha=0` the env is bit-identical to before).
+  - Configs updated: `m1_env_B_sc030.yaml` and `m1_env_B_sc030_sym.yaml` set `waste_spread_prob: 0.02`. (Sc015 / sc050 / Env A untouched until sc030 ablation locks.)
+  - `scripts/ablate_waste_regrowth.py` extended to sweep the (alpha, spread) cross-product and report waste counts at t=250/500/1000 to expose non-linear waste growth.
+- **Status:** the next ablation across 8 seeds with the new mechanic determines the final (alpha, spread) pair to lock in `m1_env_B_sc030_sym.yaml`.
+- **Files touched (representative):** `karmic_rl/envs/harvest_dual.py`, `train_karma.py`, `scripts/rollout_from_checkpoint.py`, `scripts/ablate_waste_regrowth.py`, `configs/m1_base.yaml`, `configs/m1_env_B_sc015.yaml`, `configs/m1_env_B_sc030.yaml`, `configs/m1_env_B_sc030_sym.yaml`, `configs/m1_env_B_sc050.yaml`, `docs/M1_complete_guide.md` (section 2.1).
+- **Decision impact on prereg:** Env B remains a candidate confirmatory cell pending the (alpha, spread) lock-in ablation; otherwise fall back to Env A only for M1.
+
 ### 2026-04-28 — ep4000 power check (20 vs 4x20 ~ 80-eval equivalent)
 - **Host:** Azure VM (`tapsvmT4`)
 - **What:** Power check for whether M1 should escalate from 20 to 80 eval episodes per checkpoint.
