@@ -298,6 +298,8 @@ If `tmux ls` says *no server running*, no session is active. Errors like `error 
 
 To stop paying for VM time when a long run finishes, use the reusable watcher at `scripts/auto_shutdown_watcher.sh`. It waits for a `pgrep -f` pattern's process to exit, then issues `sudo -n shutdown -h +1`.
 
+`pgrep -f` matches a **substring** anywhere in the full command line. If training runs under **tmux** (or `bash -c ... | tee`), the parent process line often **contains** `python ... train_karma.py`, so a loose pattern can match **tmux or bash** first instead of the real **python** PID. Use a regex **anchored** to the interpreter line: `^python.*train_karma\.py.*<config>\.yaml.*--seed <N>`.
+
 One-time check (passwordless sudo for shutdown):
 ```bash
 sudo -n shutdown --help >/dev/null 2>&1 && echo "[ok]" || echo "[needs setup]"
@@ -316,11 +318,11 @@ nohup bash scripts/auto_shutdown_watcher.sh \
 disown
 ```
 
-Example for an Env B sc030 seed 42 4k run:
+Example for training launched in tmux (targets the **python** process only):
 ```bash
 nohup bash scripts/auto_shutdown_watcher.sh \
-  "train_karma.py.*m1_env_B_sc030.yaml.*--seed 42" \
-  "envB_sc030_s42_4k" >/dev/null 2>&1 &
+  '^python.*train_karma\.py.*m1_env_B_sc030_sym\.yaml.*--seed 42' \
+  "envB_sym_sc030_s42_4k" >/dev/null 2>&1 &
 disown
 ```
 

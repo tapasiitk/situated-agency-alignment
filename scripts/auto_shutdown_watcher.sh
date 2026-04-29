@@ -13,6 +13,15 @@
 #     "envB_sc030_s42" >/dev/null 2>&1 &
 #   disown
 #
+# If you launched training inside tmux (or bash -c ... | tee), the command line of
+# the tmux/bash parent ALSO contains the substring "python ... train_karma.py", so
+# pgrep -f would match the wrong PID first. Anchor the regex to the real process:
+#   '^python.*train_karma\.py.*<config_stem>\.yaml.*--seed <N>'
+# Example:
+#   nohup bash scripts/auto_shutdown_watcher.sh \
+#     '^python.*train_karma\.py.*m1_env_B_sc030_sym\.yaml.*--seed 42' \
+#     "envB_sym_s42" >/dev/null 2>&1 &
+#
 # Notes:
 # - Requires passwordless sudo for shutdown. Verify once with:
 #       sudo -n shutdown --help
