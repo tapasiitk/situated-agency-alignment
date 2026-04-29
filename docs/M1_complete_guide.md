@@ -94,6 +94,8 @@ python scripts/ablate_waste_regrowth.py --steps 1000
 
 This prints mean / final APPLE and WASTE counts under both configs and confirms that mean apple count is lower under the `sym` config when `alpha > 0`.
 
+**Canonical Cleanup-style waste spread (`waste_spread_prob`).** The base waste mechanic in `karmic_rl/envs/harvest_dual.py` is *local-cell-blocking only*: a WASTE tile occupies its own cell and (via `waste_regrowth_suppression`) linearly damps regrowth in its 3x3 neighborhood, but it never propagates. The new `waste_spread_prob` knob adds a canonical-Cleanup-style stochastic spread step: each existing WASTE cell, each step, has probability `waste_spread_prob` of converting one random EMPTY 4-neighbor into WASTE. Combined with a non-zero `waste_regrowth_suppression`, unchecked waste grows non-linearly and creates real apple suppression downstream, so cleanup is genuinely instrumental even when there is no shaping reward. Symmetric Env B uses `waste_spread_prob > 0` together with `waste_regrowth_suppression > 0` and `zap_waste_reward = 0.0` so that cleanup is *purely* instrumental (no shaping). With `waste_spread_prob = 0.0` (the default, set in `configs/m1_base.yaml`) the propagation step short-circuits before any RNG draw and the env is bit-identical to the pre-spread implementation, so all M1 confirmatory results remain reproducible. Ablation entry point: `python scripts/ablate_waste_regrowth.py --steps 1000 --seed 0`.
+
 ---
 
 ## 3. Repo structure

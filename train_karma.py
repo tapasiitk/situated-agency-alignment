@@ -168,6 +168,7 @@ def train(config_path, mode, seed=42):
         dynamic_waste_enabled=env_cfg.get("dynamic_waste_enabled", False),
         dynamic_waste_prob=env_cfg.get("dynamic_waste_prob", 0.02),
         waste_regrowth_suppression=env_cfg.get("waste_regrowth_suppression", 0.0),
+        waste_spread_prob=env_cfg.get("waste_spread_prob", 0.0),
     )
 
     resolved = {
@@ -191,6 +192,7 @@ def train(config_path, mode, seed=42):
             "dynamic_waste_enabled": env.dynamic_waste_enabled,
             "dynamic_waste_prob": env.dynamic_waste_prob,
             "waste_regrowth_suppression": env.waste_regrowth_suppression,
+            "waste_spread_prob": env.waste_spread_prob,
         },
     }
     print(json.dumps(resolved, indent=2))

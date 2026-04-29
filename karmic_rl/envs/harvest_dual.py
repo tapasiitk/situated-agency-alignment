@@ -76,6 +76,7 @@ class HarvestDualEnv(ParallelEnv):
         dynamic_waste_enabled: bool = False,
         dynamic_waste_prob: float = 0.02,
         waste_regrowth_suppression: float = 0.0,
+        waste_spread_prob: float = 0.0,
     ):
         """
         Args:
@@ -99,6 +100,14 @@ class HarvestDualEnv(ParallelEnv):
                 Default 0.0 reproduces the unsuppressed regrowth dynamic
                 bit-identically; values > 0 make cleanup instrumentally useful
                 (symmetric Env B variant).
+            waste_spread_prob: per-step, per-WASTE-cell probability in [0, 1] of
+                stochastically spreading to one random EMPTY 4-neighbor
+                (canonical Cleanup-style mechanic). Combines with
+                `waste_regrowth_suppression` to make unchecked waste suppress
+                apples non-linearly, so cleanup remains instrumental even with
+                `zap_waste_reward = 0.0`. Default 0.0 disables the mechanic and
+                preserves bit-identical behaviour with the pre-spread
+                implementation (no RNG draws are made when disabled).
         """
         super().__init__()
 
@@ -123,6 +132,10 @@ class HarvestDualEnv(ParallelEnv):
         # Clamp alpha to [0, 1] so the suppression multiplier stays well-defined.
         self.waste_regrowth_suppression = float(
             max(0.0, min(1.0, float(waste_regrowth_suppression)))
+        )
+        # Clamp spread probability to [0, 1]; 0.0 disables propagation entirely.
+        self.waste_spread_prob = float(
+            max(0.0, min(1.0, float(waste_spread_prob)))
         )
 
         # Entity encoding
@@ -234,6 +247,7 @@ class HarvestDualEnv(ParallelEnv):
         self._regrow_apples()
         if self.dynamic_waste_enabled:
             self._spawn_dynamic_waste()
+        self._propagate_waste()
 
         # 3. Advance global time and apply truncation
         self.steps += 1
@@ -558,6 +572,44 @@ class HarvestDualEnv(ParallelEnv):
                 return
             r, c = empty_positions[np.random.randint(len(empty_positions))]
             self.grid[r, c] = self.WASTE
+
+    def _propagate_waste(self):
+        """
+        Canonical Cleanup-style stochastic waste spread.
+
+        For each existing WASTE cell, with probability
+        `self.waste_spread_prob`, attempt to spread to one uniformly random
+        EMPTY 4-neighbor (up/down/left/right). Cells that hold WASTE,
+        APPLE, or WALL are excluded. Agents are tracked outside the grid
+        array (in `self.agent_states`), so checking
+        `self.grid[r, c] == self.EMPTY` is sufficient to skip cells that
+        also currently hold an agent (the grid never encodes agents).
+
+        With `waste_spread_prob == 0.0` this method short-circuits before
+        any RNG draw, so the env stays bit-identical to the pre-spread
+        implementation when the mechanic is disabled.
+        """
+        if self.waste_spread_prob <= 0.0:
+            return
+        waste_positions = np.argwhere(self.grid == self.WASTE)
+        if len(waste_positions) == 0:
+            return
+        deltas = ((-1, 0), (1, 0), (0, -1), (0, 1))
+        for pos in waste_positions:
+            if np.random.random() >= self.waste_spread_prob:
+                continue
+            r, c = int(pos[0]), int(pos[1])
+            valid_neighbors = []
+            for dr, dc in deltas:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.grid_size and 0 <= nc < self.grid_size:
+                    if self.grid[nr, nc] == self.EMPTY:
+                        valid_neighbors.append((nr, nc))
+            if not valid_neighbors:
+                continue
+            choice_idx = int(np.random.choice(len(valid_neighbors)))
+            nr, nc = valid_neighbors[choice_idx]
+            self.grid[nr, nc] = self.WASTE
 
     def _find_empty_spawn(self) -> np.ndarray:
         """Sample an empty cell not occupied by any agent (up to 100 tries)."""
