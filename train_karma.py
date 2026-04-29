@@ -167,6 +167,7 @@ def train(config_path, mode, seed=42):
         apple_spawn_mode=env_cfg.get("apple_spawn_mode", "two_patch"),
         dynamic_waste_enabled=env_cfg.get("dynamic_waste_enabled", False),
         dynamic_waste_prob=env_cfg.get("dynamic_waste_prob", 0.02),
+        waste_regrowth_suppression=env_cfg.get("waste_regrowth_suppression", 0.0),
     )
 
     resolved = {
@@ -189,6 +190,7 @@ def train(config_path, mode, seed=42):
             "apple_spawn_mode": env.apple_spawn_mode,
             "dynamic_waste_enabled": env.dynamic_waste_enabled,
             "dynamic_waste_prob": env.dynamic_waste_prob,
+            "waste_regrowth_suppression": env.waste_regrowth_suppression,
         },
     }
     print(json.dumps(resolved, indent=2))

@@ -67,6 +67,7 @@ def build_env(env_cfg: Dict[str, Any]) -> HarvestDualEnv:
         apple_spawn_mode=env_cfg.get("apple_spawn_mode", "central_patch"),
         dynamic_waste_enabled=env_cfg.get("dynamic_waste_enabled", False),
         dynamic_waste_prob=env_cfg.get("dynamic_waste_prob", 0.0),
+        waste_regrowth_suppression=env_cfg.get("waste_regrowth_suppression", 0.0),
     )
 
 

@@ -75,6 +75,7 @@ class HarvestDualEnv(ParallelEnv):
         apple_spawn_mode: str = "two_patch",
         dynamic_waste_enabled: bool = False,
         dynamic_waste_prob: float = 0.02,
+        waste_regrowth_suppression: float = 0.0,
     ):
         """
         Args:
@@ -92,6 +93,12 @@ class HarvestDualEnv(ParallelEnv):
             apple_spawn_mode: "two_patch" (project default) or "central_patch" (canonical-style).
             dynamic_waste_enabled: whether waste spawns during episodes.
             dynamic_waste_prob: per-step probability of spawning one waste tile.
+            waste_regrowth_suppression: alpha in [0, 1]. Each WASTE tile in the
+                3x3 neighborhood of an empty cell multiplies that cell's apple
+                regrowth probability by max(0, 1 - alpha * waste_neighbor_count).
+                Default 0.0 reproduces the unsuppressed regrowth dynamic
+                bit-identically; values > 0 make cleanup instrumentally useful
+                (symmetric Env B variant).
         """
         super().__init__()
 
@@ -113,6 +120,10 @@ class HarvestDualEnv(ParallelEnv):
         self.apple_spawn_mode = apple_spawn_mode
         self.dynamic_waste_enabled = dynamic_waste_enabled
         self.dynamic_waste_prob = dynamic_waste_prob
+        # Clamp alpha to [0, 1] so the suppression multiplier stays well-defined.
+        self.waste_regrowth_suppression = float(
+            max(0.0, min(1.0, float(waste_regrowth_suppression)))
+        )
 
         # Entity encoding
         self.EMPTY = 0
@@ -438,6 +449,11 @@ class HarvestDualEnv(ParallelEnv):
         Density-dependent apple regrowth:
           - For each EMPTY cell, look at 3x3 neighborhood of apples.
           - Use neighbor count to index regrowth_rates.
+          - If waste_regrowth_suppression (alpha) > 0, each WASTE tile in the
+            same 3x3 neighborhood multiplies the regrowth probability by
+            max(0, 1 - alpha * waste_neighbor_count). With alpha == 0 this
+            branch is skipped and the dynamic is bit-identical to the
+            unsuppressed implementation.
         """
         apple = (self.grid == self.APPLE).astype(np.uint8)
         padded = np.pad(apple, 1, mode="constant")
@@ -461,6 +477,30 @@ class HarvestDualEnv(ParallelEnv):
             return
 
         rates = self.regrowth_rates[np.minimum(neighbor_count, 4)]
+
+        # Waste-suppresses-regrowth (symmetric Env B). alpha = 0 -> bit-identical no-op.
+        alpha = self.waste_regrowth_suppression
+        if alpha > 0.0:
+            waste = (self.grid == self.WASTE).astype(np.uint8)
+            wpad = np.pad(waste, 1, mode="constant")
+            waste_neighbor_count = (
+                wpad[:-2, :-2]
+                + wpad[:-2, 1:-1]
+                + wpad[:-2, 2:]
+                + wpad[1:-1, :-2]
+                + wpad[1:-1, 1:-1]
+                + wpad[1:-1, 2:]
+                + wpad[2:, :-2]
+                + wpad[2:, 1:-1]
+                + wpad[2:, 2:]
+            )
+            suppression = np.clip(
+                1.0 - alpha * waste_neighbor_count.astype(np.float32),
+                0.0,
+                1.0,
+            )
+            rates = rates * suppression
+
         draws = np.random.random(self.grid.shape)
         regrow_mask = candidates & (draws < rates)
         self.grid[regrow_mask] = self.APPLE

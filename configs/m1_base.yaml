@@ -18,6 +18,7 @@ env:
   dynamic_waste_enabled: false
   dynamic_waste_prob: 0.0
   zap_waste_reward: 0.0
+  waste_regrowth_suppression: 0.0  # alpha; 0.0 = unchanged regrowth (M1 default)
 
   # Aggression pathway — Leibo-faithful: instrumental, not shaped.
   zap_agent_reward: 0.0

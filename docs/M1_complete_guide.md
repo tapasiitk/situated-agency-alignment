@@ -75,6 +75,25 @@ We sweep two environment types and three scarcity levels.
 
 Together, these let M1 distinguish a pure baseline empathy gap from one driven by action ambiguity.
 
+### 2.1 Symmetric Env B (instrumental cleanup)
+
+Env A is Leibo-faithful in the strict sense: aggression is **instrumental**, not rewarded by a shaping bonus (`zap_agent_reward = 0.0`). The original Env B (`configs/m1_env_B_sc030.yaml`) breaks that symmetry: it adds a **shaping reward** for cleanup (`zap_waste_reward = 0.3`), so cooperative beam use is at least partly a reward-hacked behaviour rather than an emergent strategy.
+
+**Symmetric Env B** restores the symmetry by realising cleanup as **purely instrumental**: waste tiles in the 3x3 neighborhood of an empty cell **suppress that cell's apple regrowth probability**, so clearing waste is profitable only because it speeds up the apple supply downstream. The shaping reward is removed.
+
+- Config: `configs/m1_env_B_sc030_sym.yaml`.
+- New env knob: `waste_regrowth_suppression: 0.05` (alpha; each WASTE neighbor multiplies the per-cell regrowth rate by `max(0, 1 - alpha * waste_neighbor_count)`).
+- Kept setting: `zap_waste_reward: 0.0` (symmetric with `zap_agent_reward: 0.0`).
+- Default `waste_regrowth_suppression: 0.0` is set in `configs/m1_base.yaml`; with this default the env is **bit-identical** to the unsuppressed implementation, so all M1 confirmatory results remain reproducible.
+
+Quick ablation (no agents; uniform random actions, fixed seed):
+
+```bash
+python scripts/ablate_waste_regrowth.py --steps 1000
+```
+
+This prints mean / final APPLE and WASTE counts under both configs and confirms that mean apple count is lower under the `sym` config when `alpha > 0`.
+
 ---
 
 ## 3. Repo structure
