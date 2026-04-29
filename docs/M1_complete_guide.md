@@ -273,6 +273,41 @@ tmux attach -t m1_run
 
 If `tmux ls` says *no server running*, no session is active. Errors like `error connecting to /tmp/tmux-1000/default` simply mean the tmux server has not been started yet; create a session with `tmux new ...` and the server will start.
 
+### 7.6 Auto-shutdown after a run (`scripts/auto_shutdown_watcher.sh`)
+
+To stop paying for VM time when a long run finishes, use the reusable watcher at `scripts/auto_shutdown_watcher.sh`. It waits for a `pgrep -f` pattern's process to exit, then issues `sudo -n shutdown -h +1`.
+
+One-time check (passwordless sudo for shutdown):
+```bash
+sudo -n shutdown --help >/dev/null 2>&1 && echo "[ok]" || echo "[needs setup]"
+```
+If `[needs setup]`, configure once:
+```bash
+echo "$USER ALL=(ALL) NOPASSWD: /sbin/shutdown" | sudo tee /etc/sudoers.d/auto_shutdown
+sudo chmod 440 /etc/sudoers.d/auto_shutdown
+```
+
+General usage (after launching your training in tmux):
+```bash
+nohup bash scripts/auto_shutdown_watcher.sh \
+  "<pgrep -f pattern>" \
+  "<short_tag>" >/dev/null 2>&1 &
+disown
+```
+
+Example for an Env B sc030 seed 42 4k run:
+```bash
+nohup bash scripts/auto_shutdown_watcher.sh \
+  "train_karma.py.*m1_env_B_sc030.yaml.*--seed 42" \
+  "envB_sc030_s42_4k" >/dev/null 2>&1 &
+disown
+```
+
+Watcher log goes to `run_logs/auto_shutdown_<tag>.log`. Cancel any pending shutdown with:
+```bash
+sudo shutdown -c
+```
+
 ---
 
 ## 8. Running M1 end-to-end
