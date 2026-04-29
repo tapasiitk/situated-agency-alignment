@@ -10,9 +10,9 @@ env:
   apple_spawn_mode: central_patch
   regrowth_speed: 1.0
 
-  waste_spawn_rate: 0.10
+  waste_spawn_rate: 0.04
   dynamic_waste_enabled: true
-  dynamic_waste_prob: 0.02
+  dynamic_waste_prob: 0.005
   zap_waste_reward: 0.3
 
   zap_agent_reward: 0.0

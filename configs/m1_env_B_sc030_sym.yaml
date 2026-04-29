@@ -12,11 +12,11 @@ env:
   apple_spawn_mode: central_patch
   regrowth_speed: 1.0
 
-  waste_spawn_rate: 0.10
+  waste_spawn_rate: 0.04             # reduced from 0.10 to restore A vs B apple parity
   dynamic_waste_enabled: true
-  dynamic_waste_prob: 0.02
+  dynamic_waste_prob: 0.005          # reduced from 0.02 (matches base B above)
   zap_waste_reward: 0.0              # symmetric with zap_agent_reward = 0.0
-  waste_regrowth_suppression: 0.05   # alpha; tunable in pilot
+  waste_regrowth_suppression: 0.10   # alpha; pilot-chosen after ablation re-run
 
   zap_agent_reward: 0.0
   victim_penalty: 0.0
