@@ -2,7 +2,7 @@
 
 *Target venue: Minds and Machines / AI & Society*
 
-> **Note (internal).** This document is the **T1** paper of the research programme — *Proxy Agency and the Extended Self*. It was previously misnamed "M1". The actual **M1** paper (*The Empathy Gap: Role-Disjoint Representations in MARL Agents*) is documented in `m1_experimental_guideline.md` and `m1_preregistration_osf.md`.
+> **Note (internal).** This document is the **T1** paper of the research programme — *Proxy Agency and the Extended Self*. It was previously misnamed "M1". The companion **M1** computational paper (*The Empathy Gap: Role-Disjoint Representations in MARL Agents*) is documented in `M1_complete_guide.md`, `m1_experimental_guideline.md`, and `M1_OSF_Preregistration.md`. The pre-registered confirmatory grid is **Env A (tag-only) × five scarcity levels × three seeds = 15 runs**; dual-use **Env B** is **exploratory** under the current registry unless amended — see `design_decisions_30Apr2026.md`. (An older draft also lives in `m1_preregistration_osf.md`; treat `M1_OSF_Preregistration.md` as authoritative.)
 
 ---
 
@@ -296,7 +296,7 @@ things independently: first, that a baseline multi-agent system exhibits the rep
 asymmetry that Prediction 3 posits as the root cause of unchecked aggression; and second, that
 a role-invariant architectural modification selectively suppresses that aggression while leaving
 SoA intact. Both questions are empirical and require computational experimentation that is
-outside the scope of the present theoretical paper. The design constraints that any satisfying
+outside the scope of the present theoretical paper. The first component — establishing baseline aggressor–victim representational asymmetry — is pre-registered as a **15-run** campaign on **Env A (tag-only)** at **five** scarcity levels (three seeds each); dual-use **Env B** is treated as **exploratory** in the current registry. The design constraints that any satisfying
 test must meet are: (i) aggression reduction must be demonstrated as *selective* — cooperative
 behaviours must be preserved; (ii) SoA under the modified architecture must be
 indistinguishable from SoA under the baseline in the non-aggressive dimensions of the task; and
