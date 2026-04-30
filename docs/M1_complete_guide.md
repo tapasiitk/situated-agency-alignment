@@ -8,7 +8,7 @@ This is a single-file guide for the M1 baseline study (the "Empathy Gap" study) 
 
 ## Table of Contents
 1. [What M1 is, in plain words](#1-what-m1-is-in-plain-words)
-2. [Two environments and three scarcity levels](#2-two-environments-and-three-scarcity-levels)
+2. [Confirmatory Env A grid and exploratory Env B](#2-confirmatory-env-a-grid-and-exploratory-env-b)
 3. [Repo structure](#3-repo-structure)
 4. [Pipeline overview](#4-pipeline-overview)
 5. [Frozen preregistration design](#5-frozen-preregistration-design)
@@ -36,44 +36,41 @@ This is a single-file guide for the M1 baseline study (the "Empathy Gap" study) 
 
 ---
 
-## 2. Two environments and three scarcity levels
+## 2. Confirmatory Env A grid and exploratory Env B
 
-We sweep two environment types and three scarcity levels.
+**Confirmatory M1 factorial (OSF / prereg):** **Env A (tag-only)** only — **5** `apple_density` levels x **3** seeds = **15** training runs. Rationale: all confirmatory hypotheses (H1–H4, H3-mod) are defined on aggressor vs victim roles in a harm-only commons; dual-use Env B does not establish additional *confirmatory* claims (see `docs/design_decisions_30Apr2026.md` §1, §7). Scouts: before the main campaign, run **500 episodes**, seed **42**, on `m1_env_A_sc005.yaml` (stability) and `m1_env_A_sc070.yaml` (violence near zero); amend bounds if scouts fail.
 
-### Env A — tag-only (harm-only zap)
-- Zap targets agents only.
-- No cooperative / waste-cleaning channel.
-- Config files:
-  - `configs/m1_env_A_sc015.yaml`
-  - `configs/m1_env_A_sc030.yaml`
-  - `configs/m1_env_A_sc050.yaml`
-- Key env values:
-  - `waste_spawn_rate: 0.0`
-  - `dynamic_waste_enabled: false`
-  - `zap_waste_reward: 0.0`
+### Env A — tag-only (harm-only zap) — confirmatory
 
-### Env B — dual-use zap (harm + cooperative)
-- Zap can hit other agents *or* clear waste, depending on context.
-- Config files:
-  - `configs/m1_env_B_sc015.yaml`
-  - `configs/m1_env_B_sc030.yaml`
-  - `configs/m1_env_B_sc050.yaml`
-- Key env values:
-  - `waste_spawn_rate: 0.10`
-  - `dynamic_waste_enabled: true`
-  - `dynamic_waste_prob: 0.02`
-  - `zap_waste_reward: 0.3`
+- Zap targets agents only; no waste / cleanup channel.
+- Config files (main campaign):
+  - `configs/m1_env_A_sc005.yaml` (`apple_density: 0.05`) — extreme scarcity; scout first
+  - `configs/m1_env_A_sc015.yaml` (0.15)
+  - `configs/m1_env_A_sc030.yaml` (0.30) — pilot-validated cell
+  - `configs/m1_env_A_sc050.yaml` (0.50)
+  - `configs/m1_env_A_sc070.yaml` (0.70) — near-abundance; scout that violence ~0
+- Key env values (all Env A): `waste_spawn_rate: 0.0`, `dynamic_waste_enabled: false`, `zap_waste_reward: 0.0`, `zap_agent_reward: 0.0`, `victim_penalty: 0.0`.
 
-### Scarcity (`apple_density`)
-- `sc015` = high scarcity (0.15)
-- `sc030` = medium scarcity (0.30)
-- `sc050` = low scarcity (0.50)
+### Env B — dual-use (harm + cooperative) — exploratory / M2′ only
 
-### Why two envs?
-- **Env A** = clean diagnostic: "even in a harm-only world, does the encoder split aggressor and victim?"
-- **Env B** = ecological / generalisation check: "when zap is dual-use, does that change role separability?"
+- Zap can hit other agents *or* clear waste. **Not part of the M1 confirmatory grid.** Kept in-repo for exploratory modulation checks and as the **M2′** prerequisite (`docs/design_decisions_30Apr2026.md`).
+- Config files (examples): `configs/m1_env_B_sc015.yaml`, `m1_env_B_sc030.yaml`, `m1_env_B_sc050.yaml`, plus symmetric pilot `m1_env_B_sc030_sym.yaml`.
+- Do **not** treat Env B as required to **establish** the empathy gap; at most it asks whether dual-use *modulates* metrics (exploratory).
 
-Together, these let M1 distinguish a pure baseline empathy gap from one driven by action ambiguity.
+### Scarcity (`apple_density`) — confirmatory levels
+
+| Tag | Density | Note |
+|-----|---------|------|
+| sc005 | 0.05 | Extreme; 500-ep scout |
+| sc015 | 0.15 | High |
+| sc030 | 0.30 | Medium; pilot |
+| sc050 | 0.50 | Low |
+| sc070 | 0.70 | Near-abundance; 500-ep scout |
+
+### Why Env B still exists in the repo
+
+- **Exploratory:** whether dual-use beam structure *modulates* role separability or `ZAP_WASTE` geometry (not framed as “action ambiguity drives the gap” — see design doc §1).
+- **Programme:** ecological dual-use motivation for **M2′** (selective harm suppression with cooperation preserved), once symmetric Env B passes learned pilots.
 
 ### 2.1 Symmetric Env B (instrumental cleanup)
 
@@ -82,7 +79,7 @@ Env A is Leibo-faithful in the strict sense: aggression is **instrumental**, not
 **Symmetric Env B** restores the symmetry by realising cleanup as **purely instrumental**: waste tiles in the 3x3 neighborhood of an empty cell **suppress that cell's apple regrowth probability**, so clearing waste is profitable only because it speeds up the apple supply downstream. The shaping reward is removed.
 
 - Config: `configs/m1_env_B_sc030_sym.yaml`.
-- New env knob: `waste_regrowth_suppression: 0.05` (alpha; each WASTE neighbor multiplies the per-cell regrowth rate by `max(0, 1 - alpha * waste_neighbor_count)`).
+- New env knob: `waste_regrowth_suppression` (alpha; e.g. `0.10` in the current pilot YAML; each WASTE neighbor multiplies the per-cell regrowth rate by `max(0, 1 - alpha * waste_neighbor_count)`).
 - Kept setting: `zap_waste_reward: 0.0` (symmetric with `zap_agent_reward: 0.0`).
 - Default `waste_regrowth_suppression: 0.0` is set in `configs/m1_base.yaml`; with this default the env is **bit-identical** to the unsuppressed implementation, so all M1 confirmatory results remain reproducible.
 
@@ -110,9 +107,11 @@ situated-agency-alignment/
 |   `-- utils/roles.py                      # role IDs and names (NEUTRAL / AGGRESSOR / VICTIM / ...)
 |-- configs/
 |   |-- m1_base.yaml                        # shared M1 defaults
+|   |-- m1_env_A_sc005.yaml                 # Env A x scarcity 0.05 (scout before main)
 |   |-- m1_env_A_sc015.yaml                 # Env A x scarcity 0.15
 |   |-- m1_env_A_sc030.yaml                 # Env A x scarcity 0.30  <- pilot cell
 |   |-- m1_env_A_sc050.yaml                 # Env A x scarcity 0.50
+|   |-- m1_env_A_sc070.yaml                 # Env A x scarcity 0.70 (scout)
 |   |-- m1_env_B_sc015.yaml                 # Env B x scarcity 0.15
 |   |-- m1_env_B_sc030.yaml                 # Env B x scarcity 0.30
 |   |-- m1_env_B_sc050.yaml                 # Env B x scarcity 0.50
@@ -171,10 +170,10 @@ These are the M1 confirmatory choices, frozen by this guide and the Git commit a
 | Checkpoint interval | every 200 episodes (20 checkpoints per run) |
 | Eval episodes per checkpoint | **20** |
 | `n_min` (per-checkpoint role-count threshold) | **100** for both `n_ZAP_AGENT` and `n_BEING_ZAPPED` |
-| Env grid | 2 envs (A, B) x 3 scarcities (0.15, 0.30, 0.50) |
+| Env grid | **Env A only** x **5** scarcities (`0.05, 0.15, 0.30, 0.50, 0.70`) |
 | Seeds per cell | **3** |
 | Seed list | `[42, 123, 456]` |
-| Total confirmatory training runs | **18** (2 x 3 x 3) |
+| Total confirmatory training runs | **15** (5 x 3). Env B configs are **exploratory / M2′** only — not counted here. |
 
 ### Confirmatory metrics (primary)
 - `measurement_1_probes.probe_5way_auroc_mean`
@@ -403,20 +402,21 @@ python scripts/plot_m1_trajectory.py \
 Outputs: `01_behaviour_rates.png` ... `07_summary_2x2.png` under `--out`.
 
 ### 8.6 Full M1 confirmatory loop
-For each `cfg` in:
+For each `cfg` in the **confirmatory** list:
 
 ```
+configs/m1_env_A_sc005.yaml
 configs/m1_env_A_sc015.yaml
 configs/m1_env_A_sc030.yaml
 configs/m1_env_A_sc050.yaml
-configs/m1_env_B_sc015.yaml
-configs/m1_env_B_sc030.yaml
-configs/m1_env_B_sc050.yaml
+configs/m1_env_A_sc070.yaml
 ```
 
 run sections **8.2 -> 8.3 -> 8.4 -> 8.5** for each seed in `[42, 123, 456]`.
 
-That gives you **18 runs** total. Each run's results live under `results/<config_stem>/`.
+That gives you **15 runs** total (subject to **500-ep scouts** on `sc005` and `sc070` before committing full 4k — see `docs/design_decisions_30Apr2026.md` §7). Each run's results live under `results/<config_stem>/`.
+
+**Exploratory / programme-only:** Env B cells (`m1_env_B_*.yaml`, `m1_env_B_sc030_sym.yaml`) use the same pipeline commands but are **not** part of the confirmatory factorial.
 
 ---
 
@@ -444,9 +444,9 @@ So `n_min = 100` is the frozen threshold.
 
 ---
 
-## 10. Env B feasibility check before freezing prereg
+## 10. Env B feasibility (exploratory / M2′ — not confirmatory M1)
 
-We freeze configs only after a feasibility check that **Env B actually produces meaningful aggression** and dual-use behaviour at baseline. Reason: M2 will need at least the harm regime that M1 measures, and may run for 10k+ episodes.
+Pilot symmetric and standard Env B **before** relying on them for M2′ or exploratory figures. Reason: M2′ needs a stable dual-use baseline; this is **independent** of the **M1 confirmatory** Env-A-only grid (`docs/design_decisions_30Apr2026.md` §3, §7).
 
 ### Recommended minimum check (one VM run)
 
@@ -468,10 +468,12 @@ Inspect from the training CSV (`results/m1_env_B_sc030/...csv`):
 ### If 4k is ambiguous: longer scout
 Make a `configs/m1_env_B_sc030_10k.yaml` copy with `training.episodes: 10000` and run again with the same `--mode baseline --seed 42`. This tests whether Env B becomes meaningful only at longer horizons (relevant since M2 may use 10k+ episodes).
 
-### Decision rule
-- If 4k Env B already shows non-trivial `ViolenceRate_per_agent_step` and non-zero `CooperationRate_per_agent_step`: keep both Env A and Env B in the prereg as listed.
-- If 4k Env B is unclear: use the 10k scout.
-- If even 10k Env B is degenerate: do **not** preregister Env B as confirmatory; either revise `configs/m1_env_B_*.yaml` first, or preregister an Env A-only M1.
+### Decision rule (exploratory / M2′)
+- If 4k symmetric (or standard) Env B shows non-trivial `ViolenceRate_per_agent_step`, non-zero `CooperationRate_per_agent_step`, and **no** harvest collapse: Env B is viable for **exploratory M1 figures** and for **M2′** planning.
+- If 4k Env B is unclear: use a longer scout (e.g. 10k).
+- If Env B stays degenerate: keep **M1 confirmatory** as **Env A only** (already the prereg default); fix Env B mechanics before M2′.
+
+**Note:** The **M1 OSF confirmatory** factorial is **Env A only** (15 runs). Do not add Env B back into confirmatory claims without a registered amendment.
 
 ---
 
@@ -490,8 +492,8 @@ For each aggregated CSV / plot, read in this order.
 - `measurement_2_cka.cka_agg_vs_vic` — similarity of aggressor and victim representation subspaces. Lower = more separated rooms. (H2)
 - `measurement_4_gradient_transfer.gradient_transfer_cos_mean` — do "I was hit" gradients align with "I should hit" gradients? Negative or near-zero supports the empathy gap. (H4)
 
-### 11.3 Cross-cell comparison (M1 only)
-- Across env A vs env B and across scarcity levels, **only baseline runs** are compared in M1.
+### 11.3 Cross-cell comparison (M1 confirmatory)
+- Across **scarcity levels** within **Env A**, compare **baseline** runs only. Env B, if run, is **exploratory** for M1 — label figures accordingly.
 - KARMA / Broken Mirror comparisons are out of scope here; they belong to M2.
 
 ### 11.4 Variance
@@ -685,10 +687,10 @@ This appendix folds in the OSF-template fields that are not already covered in s
 **M1: The Empathy Gap in Baseline MARL - Role-Disjoint Representations in Dual-Use Harvest.**
 
 ### C.2 Study type
-**Observational simulation study.** Quasi-experimental factorial: 2 (env) x 3 (scarcity) x 3 (seeds). Unit of analysis: **checkpoint within run** (time-series panel). Mode: **baseline only** (`--mode baseline`).
+**Observational simulation study.** Quasi-experimental factorial: **1 (Env A)** x **5 (scarcity)** x **3 (seeds)** = **15** runs. Unit of analysis: **checkpoint within run** (time-series panel). Mode: **baseline only** (`--mode baseline`). Dual-use Env B is **exploratory** only for M1 and is documented separately (`docs/design_decisions_30Apr2026.md`).
 
 ### C.3 Blinding
-No blinding (no human subjects). To preserve confirmatory discipline, the **primary vs exploratory** distinction is frozen in this preregistration before the 18-run main campaign begins. The pilot cell (`m1_env_A_sc030`, baseline, seed 42) was used only for pipeline validation and `n_min` calibration and is **non-confirmatory**. Analysis scripts are version-controlled and frozen at the registered Git commit SHA.
+No blinding (no human subjects). To preserve confirmatory discipline, the **primary vs exploratory** distinction is frozen in this preregistration before the **15-run** main campaign begins. The pilot cell (`m1_env_A_sc030`, baseline, seed 42) was used only for pipeline validation and `n_min` calibration and is **non-confirmatory**. Analysis scripts are version-controlled and frozen at the registered Git commit SHA.
 
 ### C.4 Randomization
 Seeds are pre-specified (`[42, 123, 456]`) and shared across cells. PyTorch / NumPy / env RNGs are seeded from `--seed` in `train_karma.py`. No adaptive or stratified randomization.

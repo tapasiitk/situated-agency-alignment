@@ -73,28 +73,33 @@ This is a simulation study with no human subjects and no experimental manipulati
 
 ## 7. Additional Blinding
 
-No additional blinding procedures apply. However, to preserve the spirit of confirmatory analysis, the distinction between **primary (confirmatory)** and **exploratory** metrics is frozen in this preregistration before full-scale data collection (i.e., before running the 2 × 3 × 3 = 18-run main campaign). A single pilot cell (`m1_env_A_sc030`, baseline, seed 42) was run to validate the pipeline and calibrate the `n_min` threshold; this is documented as the pilot and does not count as confirmatory data.
+No additional blinding procedures apply. However, to preserve the spirit of confirmatory analysis, the distinction between **primary (confirmatory)** and **exploratory** metrics is frozen in this preregistration before full-scale data collection (i.e., before running the **1 x 5 x 3 = 15-run** main campaign on **Env A only**). A single pilot cell (`m1_env_A_sc030`, baseline, seed 42) was run to validate the pipeline and calibrate the `n_min` threshold; this is documented as the pilot and does not count as confirmatory data.
 
 ---
 
 ## 8. Study Design
 
 **Quasi-experimental factorial observational study.**
-- Design: fully crossed 2 (Environment condition) × 3 (Scarcity level) × 3 (Random seed) factorial.
-- Unit of analysis: **checkpoint within run** (time-series panel design), aggregated across seeds per `env × scarcity` cell.
+- Design: fully crossed **1 (Environment: Env A tag-only)** x **5 (Scarcity / `apple_density`)** x **3 (Random seed)** factorial = **15** training runs.
+- **Exploratory (non-confirmatory):** Dual-use Harvest (`Env B`) may be run for programme or figure supplements; it is **not** part of the confirmatory N or primary hypothesis tests (see `docs/design_decisions_30Apr2026.md`).
+- Unit of analysis: **checkpoint within run** (time-series panel design), aggregated across seeds per **scarcity** cell.
 - Mode: **baseline only** (`--mode baseline`). KARMA and Broken Mirror intervention conditions are out of scope for M1.
-- The design is **between-conditions** across `env × scarcity` cells and **within-run** across training checkpoints.
-- **Exact confirmatory config files frozen at registration:** `configs/m1_env_A_sc015.yaml`, `configs/m1_env_A_sc030.yaml`, `configs/m1_env_A_sc050.yaml`, `configs/m1_env_B_sc015.yaml`, `configs/m1_env_B_sc030.yaml`, `configs/m1_env_B_sc050.yaml`, with shared defaults in `configs/m1_base.yaml`.
+- The design is **between-conditions** across **scarcity** cells and **within-run** across training checkpoints.
+- **Exact confirmatory config files frozen at registration:** `configs/m1_env_A_sc005.yaml`, `configs/m1_env_A_sc015.yaml`, `configs/m1_env_A_sc030.yaml`, `configs/m1_env_A_sc050.yaml`, `configs/m1_env_A_sc070.yaml`, with shared defaults in `configs/m1_base.yaml`. **Pre-campaign scouts:** 500 episodes, seed 42, on `sc005` (training stability) and `sc070` (violence near-zero check); bounds may be amended per `docs/design_decisions_30Apr2026.md` §7 if scouts fail.
 
-**Environment conditions:**
+**Scarcity factor (`apple_density`):**
 
-| Factor | Levels | Notes |
-|--------|--------|-------|
-| Env condition | A (Tag-only), B (Dual-use) | A: `zap_waste_reward=0.0`; B: `zap_waste_reward=0.3` |
-| Scarcity (`apple_density`) | 0.15 (high), 0.30 (medium), 0.50 (low) | Required for H3-mod |
-| Seed | 3 per cell | Minimum for seed-level variance estimation |
+| Level | `apple_density` | Role |
+|-------|-----------------|------|
+| sc005 | 0.05 | Extreme scarcity; scout before full 4k |
+| sc015 | 0.15 | High scarcity |
+| sc030 | 0.30 | Medium; pilot-validated |
+| sc050 | 0.50 | Low scarcity |
+| sc070 | 0.70 | Near-abundance; scout (violence ~0) |
 
-**Total training runs: 18** (2 × 3 × 3).
+**Fixed across all runs:** Env A (tag-only): `zap_waste_reward=0.0`, `waste_spawn_rate=0.0`, `zap_agent_reward=0.0`, `victim_penalty=0.0` per YAML. **Seeds:** 3 per scarcity cell, `[42, 123, 456]`.
+
+**Total confirmatory training runs: 15** (5 scarcity levels x 3 seeds).
 
 **Fixed hyperparameters across all conditions:**
 - `grid_size: 15`, `num_agents: 4`, `max_steps: 1000`
@@ -117,7 +122,7 @@ Each of the 3 seeds per cell is drawn from the pre-specified seed list **`[42, 1
 ## 10. Existing Data
 
 **10.1.1 — Registration prior to creation of data (main campaign).**
-As of the date of submission of this preregistration, the main 2 × 3 × 3 = 18-run campaign data have **not yet been collected**. A single engineering pilot row (`m1_env_A_sc030`, baseline, seed 42, up to ep4000) was completed to validate the pipeline, calibrate `n_min`, and document the power-check decision. This pilot data is used only for protocol calibration and is explicitly labeled non-confirmatory. Confirmatory inference will be drawn only from the main campaign data collected after this preregistration is timestamped.
+As of the date of submission of this preregistration, the main **15-run** campaign data on **Env A only** (5 scarcity x 3 seeds) have **not yet been collected**. A single engineering pilot row (`m1_env_A_sc030`, baseline, seed 42, up to ep4000) was completed to validate the pipeline, calibrate `n_min`, and document the power-check decision. This pilot data is used only for protocol calibration and is explicitly labeled non-confirmatory. **Dual-use Env B** runs, if any, are **exploratory** for M1 and are not part of this confirmatory N. Confirmatory inference will be drawn only from the main campaign data collected after this preregistration is timestamped.
 
 ---
 
@@ -146,7 +151,7 @@ The 80-episode equivalent was estimated as the mean of four independent 20-episo
 ## 12. Data Collection Procedures
 
 **Training (simulation data collection):**
-For each of the 18 training runs (2 env conditions × 3 scarcity levels × 3 seeds):
+For each of the **15** confirmatory training runs (**Env A**: 5 scarcity levels x 3 seeds):
 1. Launch `python train_karma.py --config configs/m1_env_<X>_sc<Y>.yaml --mode baseline --seed <S>`.
 2. Training runs for **4000 episodes** (~16M agent-steps per run on 4 agents at 1000 steps/ep).
 3. Checkpoints are saved every 200 episodes: `{200, 400, ..., 4000}` = **20 checkpoints per run**.
@@ -159,7 +164,7 @@ For each checkpoint, run `scripts/rollout_from_checkpoint.py` for **20 evaluatio
 
 **Per-checkpoint analysis:** `scripts/analyze_checkpoint.py` reads the `.parquet` and produces an analysis `.json` with all measurement fields. `scripts/aggregate_m1.py` merges all 20 JSONs + the training CSV into a single aggregated CSV per run. This CSV is the unit committed to version control.
 
-**Compute platform:** Azure NC16as_T4_v3 VM (1× NVIDIA T4, 16 vCPUs, ~110 GB RAM). Estimated cost: approximately ~$800–$1,200 for the 18-run M1 campaign, leaving headroom for reruns and M2. Estimated duration: ~8–12 GPU-hours per run × 18 runs = ~144–216 GPU-hours.
+**Compute platform:** Azure NC16as_T4_v3 VM (1× NVIDIA T4, 16 vCPUs, ~110 GB RAM). Estimated cost scales with confirmatory N (**15** runs); prior 18-run estimate ~$800–$1,200 is an **upper bound** for the reduced design. Estimated duration: ~8–12 GPU-hours per run x **15** runs ~= **120–180** GPU-hours for the confirmatory campaign.
 
 **Reproducibility record:** For each run, record: Git commit SHA (`git rev-parse HEAD`), config path, seed, exact commands, and output artifact paths in `docs/m1_reproducibility.md` (append-only dated entries).
 
@@ -167,10 +172,10 @@ For each checkpoint, run `scripts/rollout_from_checkpoint.py` for **20 evaluatio
 
 ## 13. Sample Size
 
-- **Training runs:** 18 (2 env × 3 scarcity × 3 seeds).
+- **Training runs:** **15** (Env A only: 5 scarcity x 3 seeds).
 - **Checkpoints per run:** 20 (episodes 200 to 4000, every 200).
 - **Eval episodes per checkpoint:** 20 (fixed; see §11 for power-check justification).
-- **Total analysis units:** 360 checkpoint-level data points (18 runs × 20 checkpoints), yielding approximately 7.2M labeled (observation, role, embedding) tuples across the full campaign.
+- **Total analysis units:** **300** checkpoint-level data points (15 runs x 20 checkpoints), yielding approximately **6.0M** labeled (observation, role, embedding) tuples across the full confirmatory campaign (scaled from the prior 18-run ~7.2M estimate).
 - **Minimum usable checkpoints per run for role-comparison primaries:** those with `n_ZAP_AGENT ≥ 100` AND `n_BEING_ZAPPED ≥ 100` (`n_min = 100`); pilot shows ~14/20 checkpoints pass per seed in Env A sc030.
 
 ---
@@ -181,6 +186,7 @@ The sample size is **fixed-compute** rather than power-analysis derived, as is s
 - **3 seeds per cell** is the minimum confirmatory design adopted for this registration, balancing seed-level variance estimation with execution speed and compute budget.
 - **20 eval episodes per checkpoint** was calibrated via the pilot power check (§11): escalating to 80 episodes produced metric shifts well within interpretable noise, so 20 is sufficient for trajectory-level inference with the `n_min = 100` eligibility rule.
 - **4000 training episodes** (16M agent-steps per agent) was chosen to see clear aggression plateaus and provide sufficient signal for H3 (temporal precedence): Leibo-family aggression curves need ≥10⁶ agent-steps; 1.6×10⁷ is well above this.
+- **5 scarcity levels** (0.05, 0.15, 0.30, 0.50, 0.70) strengthen the H3-mod dose-response figure relative to 3 levels; compute budget was reallocated from removing Env B from the confirmatory factorial (see `docs/design_decisions_30Apr2026.md` §7).
 - **20 checkpoints per run** (Δ=200) provides dense temporal sampling for cross-correlation lag estimation (H3/H4).
 - Estimated compute: ~$1,300–$1,900 for the full M1 campaign; remaining ~$3,000–$3,700 reserved for M2.
 
@@ -188,7 +194,7 @@ The sample size is **fixed-compute** rather than power-analysis derived, as is s
 
 ## 15. Stopping Rule
 
-The 18-run factorial is a **fixed design** — the exact run count is pre-specified. No early stopping based on observed results is permitted. However, two **pre-specified amendment triggers** exist:
+The **15-run** confirmatory factorial is a **fixed design** — the exact run count is pre-specified. No early stopping based on observed results is permitted. However, two **pre-specified amendment triggers** exist:
 
 1. **Eval-episode amendment:** If ≥3 consecutive checkpoints in a given cell fail the `n_min = 100` threshold, an amendment escalating from 20 to 80 eval episodes is permitted for that cell (and potentially globally), provided it is filed with a dated, explicit rationale before any confirmatory inference from that cell.
 2. **Convergence failure amendment:** If logistic probe convergence failures exceed 10% of fits across a cell, an amendment to solver scaling or `max_iter` is permitted, followed by re-run of the pilot row only before scaling.
@@ -203,16 +209,16 @@ These amendments must be documented before confirmatory analysis is run.
 
 *(Simulation — quasi-experimental)*
 
-1. **Environment condition** (categorical, 2 levels):
-   - `A` (Tag-only): `zap_waste_reward=0.0`, `waste_spawn_rate=0.0` — pure competitive commons.
-   - `B` (Dual-use): `zap_waste_reward=0.3`, `waste_spawn_rate=0.10` — cooperative + competitive affordances.
+1. **Scarcity** (`apple_density`, treated as categorical, **5** levels on **Env A** confirmatory grid):
+   - **0.05** (extreme; scout before full 4k)
+   - **0.15** (high)
+   - **0.30** (medium)
+   - **0.50** (low)
+   - **0.70** (near-abundance; scout)
 
-2. **Scarcity** (`apple_density`, continuous treated as categorical, 3 levels):
-   - High scarcity: `apple_density = 0.15`
-   - Medium scarcity: `apple_density = 0.30`
-   - Low scarcity: `apple_density = 0.50`
+   **Environment type** is **not** manipulated in the confirmatory factorial: all 15 runs use **Env A** (tag-only: `zap_waste_reward=0.0`, `waste_spawn_rate=0.0`). Dual-use **Env B** may be run as **exploratory** or for M2′ prerequisites; it is out of scope for confirmatory M1 hypothesis tests unless a separate amendment registers Env B cells.
 
-3. **Random seed** (3 levels per cell): controls initialization and stochasticity of training. Seeds are pre-specified, not manipulated for content.
+2. **Random seed** (3 levels per scarcity cell): `[42, 123, 456]` — controls initialization and stochasticity of training. Seeds are pre-specified, not manipulated for content.
 
 ---
 
@@ -258,7 +264,7 @@ These amendments must be documented before confirmatory analysis is run.
 
 ### H1 (Existence / decodability)
 **Model:** 5-fold stratified cross-validated linear logistic regression (`sklearn.linear_model.LogisticRegression`, `max_iter=2000`, `C=1.0`, `solver='lbfgs'`, `multi_class='ovr'`). Input: encoder embeddings (float32[64]). Output: 5-class role label.
-**Test:** Report `probe_5way_auroc_mean` as a function of training episode across checkpoints. Confirm H1 if `probe_5way_auroc_mean > 0.80` is achieved at or before episode 2000 in at least two of the five `(env, scarcity)` cells. No formal significance test for H1 — this is a precision/threshold claim.
+**Test:** Report `probe_5way_auroc_mean` as a function of training episode across checkpoints. Confirm H1 if `probe_5way_auroc_mean > 0.80` is achieved at or before episode 2000 in at least **two of the five scarcity** conditions (Env A). No formal significance test for H1 — this is a precision/threshold claim.
 
 ### H2 (Role asymmetry)
 **Model:** Linear CKA comparison across three role pairs per checkpoint: `CKA(ZAP_AGENT, BEING_ZAPPED)`, `CKA(ZAP_AGENT, NEUTRAL)`, `CKA(BEING_ZAPPED, NEUTRAL)`. Seed-level bootstrap CI (**1000 resamples, percentile interval**) over checkpoint-averaged CKA per cell. Checkpoint eligibility rule (n_min = 100) applied.
@@ -273,7 +279,7 @@ These amendments must be documented before confirmatory analysis is run.
 **Test:** Confirm H4 if the mean `gradient_transfer_cos_mean` is not significantly greater than 0 (i.e., fails to reject H₀: cos ≤ 0, or if the t-test against 0 is non-significant for the direction of positive cosine).
 
 ### H3-mod (Scarcity moderation)
-**Model:** One-way ANOVA (or Kruskal-Wallis if normality violated) on checkpoint-averaged `probe_5way_auroc_mean` across scarcity levels, within each env condition, across seeds. Post-hoc: pairwise comparisons with Holm correction if ANOVA is significant.
+**Model:** One-way ANOVA (or Kruskal-Wallis if normality violated) on checkpoint-averaged `probe_5way_auroc_mean` across **five scarcity levels** (Env A), across seeds. Post-hoc: pairwise comparisons with Holm correction if ANOVA is significant.
 **Test:** Confirm H3-mod if the ANOVA is significant at `α = 0.05` and post-hoc shows higher separability at lower `apple_density` (0.15 > 0.30 > 0.50).
 
 ### Multiple comparisons
@@ -322,7 +328,7 @@ For confirmatory use of `cka_agg_vs_vic` and `probe_agg_vs_vic_auroc` at a given
 - **Missing checkpoints:** If a `.pt` checkpoint file is missing, record attrition and omit that checkpoint only (no interpolation). Do not omit the entire seed/run.
 - **Rollout/analysis failures:** If `scripts/rollout_from_checkpoint.py` or `scripts/analyze_checkpoint.py` fails for a checkpoint, rerun that checkpoint once with the same config and seed. If it fails again, mark as missing and report.
 - **Missing metric fields in JSON:** If a specific measurement field (e.g., `measurement_4_gradient_transfer`) is missing from a checkpoint JSON (e.g., script crashed), that checkpoint is excluded from the corresponding hypothesis test only; other metrics from the same checkpoint are still used.
-- The final manuscript will include a **data availability and attrition table** per env × scarcity cell.
+- The final manuscript will include a **data availability and attrition table** per **scarcity** cell (Env A).
 
 ---
 

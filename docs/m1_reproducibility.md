@@ -124,13 +124,13 @@ bash scripts/m1_smoke.sh 1
    - `measurement_2_cka.cka_agg_vs_vic` — role subspace similarity (P2-style; watch **single-checkpoint spikes**).
    - `measurement_3_rsa.cosdist_agg_vs_vic` — prototype geometry (exploratory unless promoted to primary).
    - `measurement_4_gradient_transfer.gradient_transfer_cos_mean` — cross-role gradient alignment (P5-style).
-4. **Cross-cell comparisons (M1)** — Compare **seeds**, **scarcity levels**, and **env A vs B** using the same baseline pipeline — not KARMA vs baseline. Overlay trajectories only for conditions that the preregistration lists.
+4. **Cross-cell comparisons (M1)** — For **confirmatory** claims, compare **seeds** and **scarcity levels on Env A** using the same baseline pipeline — not KARMA vs baseline. **Env B** is **exploratory** under the current registry; do not treat A vs B as a confirmatory factorial cell unless the preregistration is amended. Overlay trajectories only for conditions that the preregistration lists.
 5. **Variance** — The pilot checklist asks for **≥3 seeds**. One seed validates the **code path**; confirmatory claims need the registered **N** and aggregation rule.
 
 ## Pilot vs confirmatory runs
 
-- **Pilot (engineering):** Goal is to verify the **pipeline** (train → trajectory batch → aggregate → plots) and spot bugs or unstable configs. The guideline’s **single pilot cell** (`m1_env_A_sc030.yaml`, 4000 ep, checkpoints 200:200:4000, 20 eval eps) exists to stress-test analysis and **precedence** claims before scaling the **2×3×3** baseline factorial.
-- **Confirmatory / paper (M1):** Lock **primary vs exploratory** metrics, **env × scarcity × seeds** (baseline only), checkpoint cadence, eval episodes, and **`n_min = 100`** for CKA/binary agg–vic (row counts `n_ZAP_AGENT`, `n_BEING_ZAPPED`) — see §2.3 of `docs/m1_experimental_guideline.md` for the pilot table and rationale. If the ep4000 power check escalates to **80** eval episodes, follow the guideline’s amendment rule before considering a stricter `n_min`. **M2** (KARMA intervention) is a **separate** preregistration after M1 motivates it.
+- **Pilot (engineering):** Goal is to verify the **pipeline** (train → trajectory batch → aggregate → plots) and spot bugs or unstable configs. The guideline’s **single pilot cell** (`m1_env_A_sc030.yaml`, 4000 ep, checkpoints 200:200:4000, 20 eval eps) exists to stress-test analysis and **precedence** claims before scaling the **1×5×3 = 15** confirmatory grid on **Env A**.
+- **Confirmatory / paper (M1):** Lock **primary vs exploratory** metrics, **Env A × five scarcities × three seeds** (baseline only), checkpoint cadence, eval episodes, and **`n_min = 100`** for CKA/binary agg–vic (row counts `n_ZAP_AGENT`, `n_BEING_ZAPPED`) — see §2.3 of `docs/m1_experimental_guideline.md` for the pilot table and rationale. If the ep4000 power check escalates to **80** eval episodes, follow the guideline’s amendment rule before considering a stricter `n_min`. **M2** (KARMA intervention) is a **separate** preregistration after M1 motivates it.
 
 If the guideline doc lists M1 hypotheses and metrics, align the prereg with `docs/m1_experimental_guideline.md` so GitHub configs + this checklist match what you register.
 

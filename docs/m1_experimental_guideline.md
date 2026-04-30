@@ -32,8 +32,8 @@
 
 | Item | Estimate |
 |---|---|
-| Training campaign (18 runs × ~8–12 h each) | ~$216–260 |
-| Rollout + embedding extraction (18 runs × ~1 h each) | ~$20 |
+| Training campaign (15 confirmatory runs × ~8–12 h each) | ~$180–220 |
+| Rollout + embedding extraction (15 runs × ~1 h each) | ~$18 |
 | Analysis + re-runs + debugging (~2× factor) | ~$400–900 |
 | Reviewer-requested ablations (reserve) | ~$500 |
 | **Subtotal** | **~$1,300–1,900** |
@@ -72,7 +72,7 @@ These five predictions anchor five of the paper's main figures.
 
 ### 2.3 Measurement pilot checklist (paste into OSF / AsPredicted)
 
-Lock this protocol **before** scaling to the full 2×3×3 factorial, or register it as the **pilot phase** with a dated amendment for the main campaign.
+Lock this protocol **before** scaling to the **confirmatory** campaign (**1 env × 5 scarcities × 3 seeds = 15 runs** on Env A), or register **only** the single-cell pilot with a dated amendment when you promote to the full grid. **Env B** (dual-use) is **exploratory** in the current registry and does not count toward confirmatory *N* unless amended — see `docs/design_decisions_30Apr2026.md` and `docs/M1_OSF_Preregistration.md`.
 
 **Training (single cell, pilot scope)**
 
@@ -117,7 +117,7 @@ Lock this protocol **before** scaling to the full 2×3×3 factorial, or register
 
 **Rationale for `n_min = 100`:** trades off estimator stability for **enough usable checkpoints** along 200:200:4000. The stricter `n_min = 200` was plausible *a priori* but would discard most early–mid checkpoints unless eval episodes are scaled up. The completed ep4000 power check did **not** justify such a global scale-up, so `n_min = 100` remains the frozen rule for the main campaign.
 
-**Caveat:** Report **attrition** (fraction of checkpoint×seed cells passing the rule) for every env×scarcity cell. If a cell shows chronic underpowering, apply the **stop / amend** rule on eval episodes first, then reassess `n_min` once with the same global-rule discipline.
+**Caveat:** Report **attrition** (fraction of checkpoint×seed cells passing the rule) for every **Env A scarcity** cell. If a cell shows chronic underpowering, apply the **stop / amend** rule on eval episodes first, then reassess `n_min` once with the same global-rule discipline.
 
 **Primary vs exploratory (freeze labels)**
 
@@ -138,7 +138,7 @@ Lock this protocol **before** scaling to the full 2×3×3 factorial, or register
 
 **One-line summary for OSF abstract**
 
-*Main M1 campaign: 4000 ep; checkpoints **200:200:4000**; **20** eval eps per checkpoint (→ **80** if power check fails); primary CKA_agg↔vic and binary agg–vic probe only if `n_zap ≥ 100` and `n_victim ≥ 100` (**`n_min = 100`**, frozen from Env A sc030 pilot); report attrition; **≥3** seeds.*
+*Main M1 campaign: **Env A only**, **5 scarcities × 3 seeds = 15 runs**; 4000 ep; checkpoints **200:200:4000**; **20** eval eps per checkpoint (→ **80** if power check fails); primary CKA_agg↔vic and binary agg–vic probe only if `n_zap ≥ 100` and `n_victim ≥ 100` (**`n_min = 100`**, frozen from Env A sc030 pilot); report attrition; seeds **42, 123, 456** per cell.*
 
 ---
 
@@ -146,12 +146,12 @@ Lock this protocol **before** scaling to the full 2×3×3 factorial, or register
 
 ### 3.1 Environment configuration
 
-Use `HarvestDualEnv` from your existing branch. Two env conditions to cleanly isolate the "dual-use" effect:
+Use `HarvestDualEnv` from your existing branch. Two env conditions isolate the "dual-use" effect; **the preregistered confirmatory M1 grid uses Env A only.**
 
 | Env condition | Cleanup (ZAP_WASTE) | Rationale |
 |---|---|---|
-| **A — Tag-only** | `zap_waste_reward: 0.0`, `waste_spawn_rate: 0.0` | Pure competitive commons, closest to Leibo-family Gathering semantics. This is the cleanest test of the empathy gap. |
-| **B — Dual-use** | `zap_waste_reward: 0.3`, `waste_spawn_rate: 0.10` | The full program env. Tests whether the cooperative affordance masks or reveals the role-orthogonality pattern. |
+| **A — Tag-only** | `zap_waste_reward: 0.0`, `waste_spawn_rate: 0.0` | Pure competitive commons, closest to Leibo-family Gathering semantics. This is the cleanest test of the empathy gap. **Confirmatory M1** trains and reports on Env A only (five scarcity YAMLs). |
+| **B — Dual-use** | `zap_waste_reward: 0.3`, `waste_spawn_rate: 0.10` | The full program env. **Exploratory** under the current OSF text (M2′ / symmetry), not part of confirmatory *N* unless amended. |
 
 Pin the following across both conditions to avoid confounds:
 
@@ -190,11 +190,12 @@ logging:
 
 | Factor | Levels | Rationale |
 |---|---|---|
-| Env condition | A (Tag-only), B (Dual-use) | Isolates dual-use effect |
-| Scarcity (`apple_density`) | 0.15, 0.30, 0.50 | P3 prediction requires variance |
-| Seed | 3 seeds per cell | Minimum confirmatory variance estimate |
+| Env condition (confirmatory) | **A (Tag-only)** | Frozen configs `configs/m1_env_A_sc005.yaml`, `sc015`, `sc030`, `sc050`, `sc070`. |
+| Scarcity (`apple_density`) | **0.05, 0.15, 0.30, 0.50, 0.70** | P3 prediction requires variance; extreme cells may use **scout** runs (see config notes) before committing 4k. |
+| Seed | **42, 123, 456** (3 per scarcity cell) | Minimum confirmatory variance estimate |
+| Env B (dual-use) | Exploratory | Does **not** enter confirmatory *N* in the current registry. |
 
-**Total runs**: 2 × 3 × 5 = **30 training runs**.
+**Total confirmatory runs**: 1 × 5 × 3 = **15 training runs**.
 
 ### 3.3 Training length
 
@@ -204,11 +205,11 @@ Rationale: your smoke-config runs are 40 episodes (~4 × 10⁴ agent-steps). Lei
 
 ### 3.4 Checkpointing and rollout
 
-- **Checkpoint every 200 episodes** (→ 20 checkpoints per run × 18 runs = 360 checkpoints total).
+- **Checkpoint every 200 episodes** (→ 20 checkpoints per run × **15** runs = **300** checkpoints total).
 - At each checkpoint, after the training process exits, run a separate **rollout job** that loads the checkpoint and executes 20 evaluation episodes with policy rolled out in `eval` mode (no exploration noise reduction beyond what your current code does; keep the LSTM hidden state reset per episode).
 - During rollout, log per-timestep: observation, action, reward, social-event list, encoder embedding (from `out["embedding"]`), CNN feature (from `out["features"]`), LSTM hidden, value.
 
-That gives you a ~20,000-timestep-per-checkpoint dataset per seed per condition = ~12M labeled (observation, role, embedding) tuples in total. Well within disk budget.
+That gives you a ~20,000-timestep-per-checkpoint dataset per seed per condition ≈ **6M** labeled (observation, role, embedding) tuples in total for the confirmatory grid. Well within disk budget.
 
 ### 3.5 Role labels from social events
 
@@ -260,7 +261,7 @@ The rollout is a separate program from training. It runs on the same VM, loads a
 | `role_multilabel` | int8 [5] | one-hot per class, for multi-label |
 | `event_details` | JSON | full social event list |
 
-About 20 MB per checkpoint uncompressed, ~600 MB per run × 18 runs = 10.8 GB total. Comfortable.
+About 20 MB per checkpoint uncompressed, ~600 MB per run × **15** runs ≈ **9 GB** total for the confirmatory campaign. Comfortable.
 
 ---
 
@@ -306,7 +307,7 @@ For each checkpoint, compute the 5×5 CKA matrix across all role pairs. Track th
 
 Match sample sizes across cells (subsample to min class size) to avoid CKA's sample-size sensitivity.
 
-**Reported result**: a panel of 5×5 CKA heatmaps at checkpoints `{0, 5, 10, 15, 20}` × 2 env conditions. Central story: the ZAP_AGENT × BEING_ZAPPED off-diagonal cell darkens (lower CKA) as training progresses.
+**Reported result**: a panel of 5×5 CKA heatmaps at checkpoints `{0, 5, 10, 15, 20}` × **Env A scarcity cells** (confirmatory). **Exploratory Env B** panels are optional unless promoted in the registry. Central story: the ZAP_AGENT × BEING_ZAPPED off-diagonal cell darkens (lower CKA) as training progresses.
 
 ### 6.3 Measurement 3 — Representational similarity analysis / RSA (complement to CKA)
 
@@ -366,7 +367,7 @@ For each run, you have two time series across the 20 checkpoints:
 
 Compute cross-correlation at lags `k = -5, -4, ..., +5` (checkpoints). Average across seeds. The prediction: peak cross-correlation at `k > 0`, meaning orthogonality at time `t` predicts aggression at time `t + k`.
 
-For stronger causal framing (though not strict causality), run a Granger-causality test. Report per scarcity × env cell.
+For stronger causal framing (though not strict causality), run a Granger-causality test. Report **per Env A scarcity cell** for confirmatory analyses (plus optional exploratory Env B if collected).
 
 **Reported result**: a figure with two curves per panel (orthogonality and aggression rate over training) with a clear visual lead-lag relationship, plus a cross-correlation plot.
 
@@ -377,12 +378,12 @@ For stronger causal framing (though not strict causality), run a Granger-causali
 | Phase | Runs / jobs | Hours each | Total hours | Cost (@ $1.20/h) |
 |---|---|---|---|---|
 | Pilot (1 env, 1 scarcity, 3 seeds) | 3 | 8 | 24 | $29 |
-| Main training campaign | 30 | 10 | 300 | $360 |
-| Rollout generation | 600 checkpoints | 0.1 | 60 | $72 |
+| Main training campaign (1 env × 5 scarcity × 3 seeds) | 15 | 10 | 150 | $180 |
+| Rollout generation | 300 checkpoints | 0.1 | 30 | $36 |
 | Analysis (GPU-optional) | — | ~5 | 5 | $6 |
 | Re-runs / debugging | ~6 | 10 | 60 | $72 |
 | Reviewer ablations (reserve) | ~10 | 10 | 100 | $120 |
-| **Total M1 compute** | | | **~550 h** | **~$660** |
+| **Total M1 compute** | | | **~389 h** | **~$443** |
 
 Leaves ~$4300 of the $5000 for M2 and beyond.
 
@@ -403,14 +404,14 @@ Parallelization note: your T4 has 16 GB VRAM; current code uses ~2 GB. You can r
 
 ### Weeks 3–6: Main training campaign
 
-- [ ] Launch 18 runs (2 env × 3 scarcity × 3 seeds). If running 2-in-parallel, budget ~4–5 days of wall clock. If serial, ~7–9 days.
+- [ ] Launch **15** confirmatory runs (Env A × 5 scarcity × 3 seeds). If running 2-in-parallel, budget **~3–4 days** of wall clock. If serial, **~6–8 days**.
 - [ ] Monitor via wandb for silent failures (NaN losses, reward collapse).
 - [ ] Re-run any failed seeds.
-- [ ] Generate rollouts for all 600 checkpoints.
+- [ ] Generate rollouts for all **300** checkpoints.
 
 ### Weeks 7–8: Analysis
 
-- [ ] Run the five measurements across all 600 checkpoints locally (laptop-class work).
+- [ ] Run the five measurements across all **300** checkpoints locally (laptop-class work).
 - [ ] Produce per-measurement summary DataFrames.
 - [ ] Generate all main figures.
 - [ ] Run exploratory analyses: do ZAP_WASTE embeddings cluster with ZAP_AGENT (aggression) or with APPLE_EATEN (reward)? This is a nice bonus result.
@@ -535,7 +536,7 @@ Abstract (200 words)
 3. Environment and Agent
    - Dual-Use Harvest: grid, dynamics, dual-use beam, social events.
    - Recurrent PPO agent: CNN → projector → LSTM → actor/critic.
-   - Training protocol: 4000 episodes × 4 agents × 2 env × 3 scarcity × 3 seeds.
+   - Training protocol: 4000 episodes × 4 agents × **1 env (A, confirmatory) × 5 scarcity × 3 seeds = 15 runs**; Env B exploratory if reported.
 
 4. Measurements
    4.1 Linear probes (P1)
@@ -571,14 +572,14 @@ Abstract (200 words)
 ```
 
 **Main figures (exactly 5)**:
-1. Behavioural curves: ViolenceRate vs training episode, by env × scarcity.
+1. Behavioural curves: ViolenceRate vs training episode, **by scarcity (Env A confirmatory)**; Env B optional exploratory overlay.
 2. Linear-probe AUROC vs training episode (Meas. 1).
-3. 5×5 CKA heatmap panels at early/mid/late training × 2 env conditions (Meas. 2).
+3. 5×5 CKA heatmap panels at early/mid/late training × **Env A scarcity** (Meas. 2); Env B optional.
 4. Gradient-transfer cosine distributions at early/mid/late training (Meas. 4).
 5. Temporal precedence: orthogonality and aggression overlay, with cross-correlation inset (Meas. 5).
 
 **Main tables (2)**:
-1. Summary statistics per `(env, scarcity)` cell — final aggression rate, final probe AUROC, mean gradient cosine, 95 % CIs over seeds.
+1. Summary statistics per **scarcity** cell on **Env A** — final aggression rate, final probe AUROC, mean gradient cosine, 95 % CIs over seeds (plus optional Env B exploratory rows if collected).
 2. Cross-correlation peak lag per cell, with Granger-test p-values.
 
 ---
@@ -589,7 +590,7 @@ Abstract (200 words)
 |---|---|---|---|
 | Baseline embeddings turn out to already be role-invariant (P1 fails) | Low | High | Paper pivots to a null-result TMLR paper. Also: means KARMA has no mechanistic room → pre-register this as the honest science. |
 | Training instability (NaN losses, reward collapse) at 4000 episodes | Medium | Medium | Your `stability-m1` branch already addresses this. Pre-flight catches it. If a seed fails, re-run with different seed; don't cherry-pick. |
-| T4 is too slow, 18 runs take too long | Medium | Low | Parallelize 2 runs per GPU (total wall-clock halves). Current prereg already freezes 3 seeds per cell; any later expansion to 5 should be treated as a revision-stage extension. |
+| T4 is too slow, 15 runs take too long | Medium | Low | Parallelize 2 runs per GPU (total wall-clock halves). Current prereg already freezes 3 seeds per cell; any later expansion to 5 should be treated as a revision-stage extension. |
 | Gradient-transfer measurement (Meas. 4) is unstable or noisy | Medium | Medium | Use 1000+ pairs per checkpoint, bootstrap CIs. If still noisy, demote to supporting evidence and make Meas. 1–3 the headline. |
 | Reviewers ask "but what about off-policy Q-learning agents? A3C?" | Medium | Medium | Add 2–3 A3C seeds in revision (budget reserve covers it). Or frame the paper as specifically about the PPO+LSTM family. |
 | Scarcity levels don't produce variance in aggression | Low | Medium | Re-run with wider spread (`apple_density` ∈ {0.10, 0.30, 0.60}) or tune `regrowth_speed` instead. |
