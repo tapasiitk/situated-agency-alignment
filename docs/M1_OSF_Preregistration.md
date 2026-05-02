@@ -24,7 +24,7 @@ This study investigates whether a baseline recurrent PPO agent (PPO+LSTM) traine
 
 The Dual-Use Harvest environment is a commons-dilemma grid world where agents can harvest apples (cooperative) or zap other agents (aggressive). A key unanswered question is whether standard MARL encoders naturally encode "who is suffering" as a latent signal, or whether there is a systematic "empathy gap" — a geometric orthogonality between aggressor-view and victim-view latent states that prevents negative feedback from victimization from influencing aggressive policy updates. This M1 study is purely diagnostic (baseline pipeline only, no intervention). It is the motivating study for M2 (KARMA intervention), which is the subject of a separate preregistration.
 
-Codebase: `situated-agency-alignment`. Pipeline scripts: `train_karma.py`, `scripts/rollout_from_checkpoint.py`, `scripts/analyze_checkpoint.py`, `scripts/aggregate_m1.py`, `scripts/plot_m1_trajectory.py`. Full protocol: `docs/m1_experimental_guideline.md` and `docs/m1_reproducibility.md`.
+Codebase: `situated-agency-alignment`. Pipeline scripts: `train_karma.py`, `scripts/rollout_from_checkpoint.py`, `scripts/analyze_checkpoint.py`, `scripts/aggregate_m1.py`, `scripts/plot_m1_trajectory.py` (exploratory trajectories), `scripts/plot_m1_confirmatory_figures.py` (**confirmatory** figures aligned with hypotheses below; run after aggregate). Full protocol: `docs/m1_experimental_guideline.md` and `docs/m1_reproducibility.md`.
 
 ---
 
@@ -33,7 +33,7 @@ Codebase: `situated-agency-alignment`. Pipeline scripts: `train_karma.py`, `scri
 All hypotheses are **directional** unless noted.
 
 **H1 — Existence / Decodability** *(directional)*
-Linear probes trained on frozen encoder embeddings will achieve above-chance role classification by mid-training. Specifically, `measurement_1_probes.probe_5way_auroc_mean > 0.80` at or before episode 2000 in at least one scarcity condition.
+Linear probes trained on frozen encoder embeddings will achieve above-chance role classification by mid-training. Specifically, `measurement_1_probes.probe_5way_auroc_mean > 0.80` at or before episode 2000 in at least **two of the five** scarcity conditions (Env A); for each condition, **any** of the three registered seeds may satisfy the threshold for that cell.
 *Null: AUROC ≤ 0.50 (chance); the empathy-gap framing is incorrect.*
 
 **H2 — Role Asymmetry / Non-Trivial Separability** *(directional)*
@@ -268,7 +268,7 @@ These amendments must be documented before confirmatory analysis is run.
 
 ### H2 (Role asymmetry)
 **Model:** Linear CKA comparison across three role pairs per checkpoint: `CKA(ZAP_AGENT, BEING_ZAPPED)`, `CKA(ZAP_AGENT, NEUTRAL)`, `CKA(BEING_ZAPPED, NEUTRAL)`. Seed-level bootstrap CI (**1000 resamples, percentile interval**) over checkpoint-averaged CKA per cell. Checkpoint eligibility rule (n_min = 100) applied.
-**Test:** Confirm H2 if the bootstrap 95% CI of `CKA(ZAP_AGENT, BEING_ZAPPED) − CKA(ZAP_AGENT, NEUTRAL)` is entirely negative in at least 3 of the 6 cells, with the same for the second comparison.
+**Test:** Confirm H2 if the bootstrap 95% CI of `CKA(ZAP_AGENT, BEING_ZAPPED) − CKA(ZAP_AGENT, NEUTRAL)` is entirely negative in at least **3 of the 5 scarcity** cells (Env A), with the same for the second comparison (`CKA(ZAP_AGENT, BEING_ZAPPED) − CKA(BEING_ZAPPED, NEUTRAL)`). *Cells* = scarcity levels (`sc005` … `sc070`), each pooling all seeds registered for that level.
 
 ### H3 (Behavior-representation coupling / temporal precedence)
 **Primary model/statistic:** Pearson cross-correlation between the **3-checkpoint rolling mean** of `probe_5way_auroc_mean` and the **3-checkpoint rolling mean** of `ViolenceRate_per_agent_step`, computed per seed per cell. Lag range is frozen to **−10 to +10 checkpoints** (−2000 to +2000 episodes). The confirmatory H3 statistic is the **lag at peak cross-correlation**.
@@ -298,7 +298,7 @@ Primary outcomes are limited to H1–H4 and H3-mod as listed above. All explorat
 
 ## 21. Inference Criteria
 
-- **H1:** Threshold criterion — `probe_5way_auroc_mean > 0.80` in ≥2 of 6 cells by episode 2000 (no p-value).
+- **H1:** Threshold criterion — `probe_5way_auroc_mean > 0.80` in ≥**2 of the 5 scarcity** cells by episode 2000 (pool: any of the 3 registered seeds per cell may satisfy the threshold for that cell; no p-value).
 - **H2:** Bootstrap 95% CI (**1000-resample percentile CI**) for CKA difference (entirely negative = confirmed).
 - **H3:** Mean peak lag > 0 checkpoints across seeds/cells; Granger p < 0.05 as supporting evidence only.
 - **H4:** One-sample t-test, two-tailed, α = 0.05; H4 confirmed if mean cosine ≤ 0 (or t-test against μ₀=0 is non-significant with a negative trend).
