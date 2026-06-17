@@ -1,0 +1,23 @@
+study: m0_ecology_calibration
+purpose: "Calibrate and freeze a Leibo-like ecology before mechanism tests."
+
+configs:
+  - configs/stage0_env_A_A_n4_ad030_rg050_zt25.yaml
+  - configs/stage0_env_A_B_n6_ad030_rg050_zt25.yaml
+  - configs/stage0_env_A_C_n8_ad030_rg050_zt25.yaml
+  - configs/stage0_env_A_D_n6_ad030_rg025_zt25.yaml
+  - configs/stage0_env_A_E_n6_ad030_rg100_zt25.yaml
+  - configs/stage0_env_A_F_n6_ad030_rg050_zt50.yaml
+  - configs/stage0_env_A_G_n5_ad030_rg050_zt25.yaml
+  - configs/stage0_env_A_H_n6_ad030_rg075_zt25.yaml
+  - configs/stage0_env_A_I_n6_ad030_rg100_zt50.yaml
+
+selected_frozen_ecology:
+  id: env_A_frozen_n6_ad030_rg075_zt25
+  source_config: configs/stage0_env_A_H_n6_ad030_rg075_zt25.yaml
+  m1_config: configs/m1_env_A_frozen_n6_ad030_rg075_zt25.yaml
+
+mode: baseline
+seeds: [42, 123]
+results_dir: results/m0_ecology_calibration
+log_dir: run_logs/m0

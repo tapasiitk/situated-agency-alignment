@@ -1,0 +1,44 @@
+env:
+  grid_size: 15
+  num_agents: 5
+  max_steps: 1000
+
+  # Scarcer apples to stress competition.
+  apple_density: 0.15
+  apple_spawn_mode: central_patch
+  regrowth_speed: 0.8
+
+  # Gathering-like setup: no cleanup track.
+  waste_spawn_rate: 0.0
+  dynamic_waste_enabled: false
+  dynamic_waste_prob: 0.0
+  zap_waste_reward: 0.0
+
+  # Conflict-cost lever + less hardcoded victim punishment.
+  zap_agent_reward: 0.0
+  zap_timeout: 50
+  victim_penalty: 0.1
+  zap_cost: 0.0
+
+training:
+  episodes: 40
+  update_every: 10
+  use_amp: true
+  amp_inference: false
+  compile_model: false
+  lr: 1.5e-4
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_ratio: 0.2
+  ppo_epochs: 4
+  batch_size: 64
+  contrastive_batch_size: 64
+  contrastive_weight: 0.1
+  role_loss_weight: 0.1
+
+logging:
+  project_name: "karma-canonical-baseline-test"
+  use_wandb: true
+  local_results_dir: "results/leibo_conflict_diag40"
+  log_interval: 20
+  checkpoint_interval: 250

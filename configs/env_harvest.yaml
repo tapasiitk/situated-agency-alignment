@@ -41,7 +41,7 @@ logging:
 
 # tmux new -s karma_run
 # #activate venv
-# source ~/venv/bin/activate
+# source .venv/bin/activate
 # cd ~
 # rm -rf karma
 # git clone https://github.com/tapasiitk/situated-agency-alignment karma

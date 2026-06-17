@@ -1,0 +1,32 @@
+study: m2_intervention
+purpose: "Compare KARMA and broken-mirror interventions against M1 baseline."
+
+frozen_ecology_id: env_A_frozen_n6_ad030_rg075_zt25
+baseline_manifest: manifests/m1_frozen_mechanism.yaml
+recommended_seeds: [42, 123, 202, 303, 404]
+
+conditions:
+  - name: karma
+    mode: karma
+    config: configs/m2_intervention/m2_env_A_frozen_n6_ad030_rg075_zt25_karma.yaml
+    expected_difference_from_m1: "contrastive_weight > 0 and --mode karma"
+  - name: broken
+    mode: broken
+    config: configs/m2_intervention/m2_env_A_frozen_n6_ad030_rg075_zt25_broken.yaml
+    expected_difference_from_m1: "contrastive_weight > 0 and --mode broken"
+
+training:
+  episodes: 4000
+  checkpoint_interval: 200
+
+postprocess:
+  reuse_m1_pipeline: true
+  rollout_script: scripts/rollout_from_checkpoint.py
+  analysis_script: scripts/analyze_checkpoint.py
+  aggregate_script: scripts/aggregate_m1.py
+  eval_episodes_per_checkpoint: 20
+  late_start_episode: 2000
+  n_min: 100
+
+results_dir: results/m2_intervention/env_A_frozen_n6_ad030_rg075_zt25
+log_dir: run_logs/m2

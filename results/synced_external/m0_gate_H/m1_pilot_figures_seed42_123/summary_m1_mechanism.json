@@ -1,0 +1,60 @@
+{
+  "analysis_layer": "M1_frozen_ecology_mechanism",
+  "confirmatory_scope": "Frozen-ecology baseline mechanism test over seeds; no scarcity-cell pass/fail logic.",
+  "x_axis_semantics": "Training checkpoint/episode for trajectories; seed-level late-window means for summaries.",
+  "primary_unit": "seed x checkpoint",
+  "uses_representation_metrics_for_selection": false,
+  "ecology_id": "unknown",
+  "n_csvs": 1,
+  "n_seeds": 2,
+  "late_start_episode": 3200,
+  "n_min": 100,
+  "h1_binary_probe": {
+    "metric": "measurement_1_probes.probe_agg_vs_vic_auroc",
+    "seed_late_means": [
+      {
+        "seed": 42,
+        "metric": "measurement_1_probes.probe_agg_vs_vic_auroc",
+        "late_mean": 0.40934990198737037,
+        "n_eligible_late_checkpoints": 3,
+        "n_total_checkpoints": 3
+      },
+      {
+        "seed": 123,
+        "metric": "measurement_1_probes.probe_agg_vs_vic_auroc",
+        "late_mean": 0.4305647559126888,
+        "n_eligible_late_checkpoints": 3,
+        "n_total_checkpoints": 3
+      }
+    ],
+    "bootstrap_mean": 0.4199573289500296,
+    "bootstrap_ci95": [
+      0.40934990198737037,
+      0.4305647559126888
+    ]
+  },
+  "h2_gradient_transfer": {
+    "metric": "measurement_4_gradient_transfer.gradient_transfer_cos_mean",
+    "seed_late_means": [
+      {
+        "seed": 42,
+        "metric": "measurement_4_gradient_transfer.gradient_transfer_cos_mean",
+        "late_mean": -0.009444092089931203,
+        "n_eligible_late_checkpoints": 3,
+        "n_total_checkpoints": 3
+      },
+      {
+        "seed": 123,
+        "metric": "measurement_4_gradient_transfer.gradient_transfer_cos_mean",
+        "late_mean": 0.042565669243534394,
+        "n_eligible_late_checkpoints": 3,
+        "n_total_checkpoints": 3
+      }
+    ],
+    "bootstrap_mean": 0.016560788576801596,
+    "bootstrap_ci95": [
+      -0.009444092089931203,
+      0.042565669243534394
+    ]
+  }
+}

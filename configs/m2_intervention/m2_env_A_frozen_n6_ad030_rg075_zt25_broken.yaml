@@ -1,0 +1,44 @@
+# M2 broken-mirror control on the M1 frozen ecology.
+# Run with: python train_karma.py --config <this file> --mode broken --seed <N>
+
+env:
+  grid_size: 15
+  num_agents: 6
+  max_steps: 1000
+
+  apple_density: 0.30
+  apple_spawn_mode: central_patch
+  regrowth_speed: 0.75
+
+  waste_spawn_rate: 0.0
+  dynamic_waste_enabled: false
+  dynamic_waste_prob: 0.0
+  zap_waste_reward: 0.0
+
+  zap_agent_reward: 0.0
+  victim_penalty: 0.0
+  zap_timeout: 25
+  zap_cost: 0.0
+
+training:
+  episodes: 4000
+  update_every: 10
+  use_amp: true
+  amp_inference: false
+  compile_model: false
+  lr: 1.5e-4
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_ratio: 0.2
+  ppo_epochs: 4
+  batch_size: 64
+  contrastive_batch_size: 64
+  contrastive_weight: 0.1
+  role_loss_weight: 0.0
+
+logging:
+  project_name: "karma-m2-frozen-ecology"
+  use_wandb: true
+  local_results_dir: "results/m2_intervention/env_A_frozen_n6_ad030_rg075_zt25/broken"
+  log_interval: 20
+  checkpoint_interval: 200

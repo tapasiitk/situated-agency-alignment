@@ -1,0 +1,24 @@
+study: m1_frozen_mechanism
+purpose: "Measure baseline representational mechanism under the frozen M0 ecology."
+
+frozen_ecology_id: env_A_frozen_n6_ad030_rg075_zt25
+config: configs/m1_env_A_frozen_n6_ad030_rg075_zt25.yaml
+mode: baseline
+recommended_seeds: [42, 123, 202, 303, 404]
+
+training:
+  episodes: 4000
+  checkpoint_interval: 200
+
+postprocess:
+  rollout_script: scripts/rollout_from_checkpoint.py
+  analysis_script: scripts/analyze_checkpoint.py
+  aggregate_script: scripts/aggregate_m1.py
+  plot_script: scripts/plot_m1_mechanism_frozen_ecology.py
+  eval_episodes_per_checkpoint: 20
+  late_start_episode: 2000
+  n_min: 100
+
+results_dir: results/m1_env_A_frozen_n6_ad030_rg075_zt25
+grouped_results_dir: results/m1_frozen_mechanism/env_A_frozen_n6_ad030_rg075_zt25
+log_dir: run_logs/m1
