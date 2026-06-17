@@ -15,8 +15,8 @@ It develops **KARMA** (**K**nowledge-guided **A**lignment via
 **R**ole-invariant **M**irror **A**rchitecture), a candidate representational
 intervention for multi-agent alignment.
 
-It is also the public computational companion to the T1v3 theory draft,
-[`docs/meta/T1_proxy_agency_moral_shieldv3.md`](docs/meta/T1_proxy_agency_moral_shieldv3.md).
+It is also the public computational companion to the T1v3 theory paper,
+[`docs/meta/T1_proxy_agency_moral_shieldv3_minds_machines.pdf`](docs/meta/T1_proxy_agency_moral_shieldv3_minds_machines.pdf).
 The theory paper separates the problem into two layers:
 
 - **Tragedy layer:** competitive commons ecologies can make exclusionary
@@ -271,7 +271,7 @@ situated-agency-alignment/
 ├── manifests/                      # Study run manifests
 ├── scripts/                        # Rollout, analysis, plotting helpers
 ├── docs/
-│   ├── meta/                       # T1/T-series theory drafts
+│   ├── meta/                       # Public T1/T-series theory artifacts
 │   ├── M1_2_related/               # M0/M1/M2 design records
 │   └── assets/readme/              # README figures
 ├── results/                        # Lightweight summaries and figures
@@ -280,7 +280,7 @@ situated-agency-alignment/
 
 ## What To Read First
 
-- Theory frame: [`docs/meta/T1_proxy_agency_moral_shieldv3.md`](docs/meta/T1_proxy_agency_moral_shieldv3.md)
+- Theory frame: [`docs/meta/T1_proxy_agency_moral_shieldv3_minds_machines.pdf`](docs/meta/T1_proxy_agency_moral_shieldv3_minds_machines.pdf)
 - Living computational design record: [`docs/M1_2_related/design_decisions.md`](docs/M1_2_related/design_decisions.md)
 - M0 calibration runbook: [`docs/M1_2_related/M0_behavioral_ecology_calibration.md`](docs/M1_2_related/M0_behavioral_ecology_calibration.md)
 - M1 refactor handoff: [`docs/M1_2_related/M1_KT_ecology_mechanism_refactor.md`](docs/M1_2_related/M1_KT_ecology_mechanism_refactor.md)
