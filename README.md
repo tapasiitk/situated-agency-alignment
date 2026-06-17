@@ -11,6 +11,10 @@ on the **Proxy Agency moral shield**: when a personalized agent acts fluently
 enough to feel like an extension of the user, harmful strategic drift may become
 harder to notice as a moral violation.
 
+It develops **KARMA** (**K**nowledge-guided **A**lignment via
+**R**ole-invariant **M**irror **A**rchitecture), a candidate representational
+intervention for multi-agent alignment.
+
 It is also the public computational companion to the T1v3 theory draft,
 [`docs/meta/T1_proxy_agency_moral_shieldv3.md`](docs/meta/T1_proxy_agency_moral_shieldv3.md).
 The theory paper separates the problem into two layers:
@@ -24,6 +28,27 @@ The code here studies the agent-side tragedy/mechanism layer first. It
 reproduces a commons aggression ecology, tests whether the baseline agent shows
 an empathy-gap style mechanism, and then asks whether a role-invariant
 representation intervention can suppress harm.
+
+## Why Not Just Hard-Code It?
+
+Hard constraints, warnings, filters, and override prompts are necessary in many
+AI safety settings. But they do not answer the specific Proxy Agency problem.
+The concern here is not only that an agent may choose an aggressive action; it is
+that a personalized agent may drift into harmful strategies while the user still
+experiences the strategy as fluent, competent, and self-authored.
+
+In that setting, a visible block or warning can reduce harm, but it may do so by
+breaking the very Sense of Agency (SoA) that made the system useful. The harder
+question is whether an agent can learn a different **disposition**: a policy
+whose internal representation makes harm-infliction less attractive before a
+post-hoc veto is needed.
+
+KARMA is aimed at that level. Instead of adding a rule like "never zap," it
+tests whether binding the aggressor view (`ZAP_AGENT`) with the victim view
+(`BEING_ZAPPED`) changes the learned representational substrate from which
+action tendencies arise. The research target is therefore not merely behavioral
+compliance, but architectural alignment: reducing harmful drift while preserving
+agency, fluency, and useful autonomy where possible.
 
 ## Research Positioning
 
@@ -56,10 +81,12 @@ This repo therefore sits at the intersection of:
 |---|---|
 | **Plural-values alignment** | AI agents may act for users with different, conflicting, and changing values; alignment must handle coordination and conflict, not only single-user preference following. |
 | **Proxy Agency** | A user experiences an AI agent's actions as continuous with their own extended will when the agent is personalized and semantically fluent. |
+| **Sense of Agency (SoA)** | The user's felt authorship over an action. The moral-shield risk is strongest when SoA remains high while harmful drift is not recategorized as a violation. |
 | **Moral shield** | Harmful AI-mediated strategies may be slower to trigger moral scrutiny because they feel self-authored rather than alien or externally imposed. |
 | **Tragedy layer** | A commons ecology where individually useful exclusion can emerge under resource pressure. |
 | **Empathy-gap mechanism** | A candidate agent-side failure mode in which victim-side negative feedback does not transfer into aggressor-side restraint. |
-| **KARMA** | A role-invariant representation intervention that explicitly binds aggressor and victim views. |
+| **Dispositional intervention** | A safety intervention aimed at the agent's learned representations and action tendencies, not only at blocking outputs after they are selected. |
+| **KARMA** | Knowledge-guided Alignment via Role-invariant Mirror Architecture: a role-invariant representation intervention that explicitly binds aggressor and victim views. |
 
 ## Current Study Sequence
 
@@ -120,7 +147,7 @@ frozen ecology, with the same late-window and `n_min` rules.
 
 ## M2: KARMA Intervention Idea
 
-KARMA (**K**nowledge **A**cquisition via **R**ole-invariant **M**irror
+KARMA (**K**nowledge-guided **A**lignment via **R**ole-invariant **M**irror
 **A**rchitecture) adds a Siamese projector to a shared PPO-LSTM actor-critic and
 applies a contrastive loss to role-labeled social events:
 
@@ -136,6 +163,12 @@ aggressor and victim representations should reduce `ZAP_AGENT` without merely
 destroying foraging performance. In the broader program, this is one candidate
 mechanism for aligning agents that act for different users while still needing to
 coordinate, negotiate, and respect shared constraints.
+
+This is why the intervention is located at the representational/dispositional
+level. The goal is not to prove that aggression can be stopped by an external
+ban. The goal is to test whether the learned policy can become less disposed to
+harm while remaining an autonomous agent whose behavior can still feel fluent to
+the user in later human-facing studies.
 
 Implementation note: the current code's `broken` mode binds `ZAP_AGENT` to
 `ZAP_WASTE`. That is appropriate for the future dual-use Env B/M2' branch, but
