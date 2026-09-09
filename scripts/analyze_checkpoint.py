@@ -15,7 +15,12 @@ Usage:
         --rollout   results/m1_smoke40/rollouts/seed1_ep20.parquet \
         --checkpoint results/m1_smoke40/checkpoints/m1_smoke40_baseline_seed1_ep20.pt \
         --config    configs/m1_smoke40.yaml \
-        --output    results/m1_smoke40/analysis/seed1_ep20.json
+        --output    results/m1_smoke40/analysis/seed1_ep20.json \
+        --probe-max-iter 5000 \
+        --probe-solver lbfgs
+
+Pilot several rollouts at fixed (--probe-max-iter, --probe-solver): scripts/pilot_probe_convergence.py.
+Grid-search those settings (pre-prereg): scripts/pilot_probe_hyperparam_sweep.py.
 """
 
 from __future__ import annotations
@@ -68,12 +73,23 @@ def stack_embeddings(df) -> np.ndarray:
 # --- Measurement 1 -- linear probes -----------------------------------------
 
 
-def measure_linear_probes(df, embeddings: np.ndarray) -> Dict[str, Any]:
+def measure_linear_probes(
+    df,
+    embeddings: np.ndarray,
+    *,
+    max_iter: int = 2000,
+    solver: str = "lbfgs",
+    multi_class: str = "ovr",
+) -> Dict[str, Any]:
     from sklearn.linear_model import LogisticRegression
     from sklearn.model_selection import StratifiedKFold
     from sklearn.metrics import f1_score, roc_auc_score
 
-    results: Dict[str, Any] = {}
+    results: Dict[str, Any] = {
+        "probe_fit_max_iter": int(max_iter),
+        "probe_fit_solver": str(solver),
+        "probe_fit_multi_class": str(multi_class),
+    }
     roles = df["role"].to_numpy()
 
     # --- 5-way probe (may be imbalanced; use balanced CV)
@@ -83,7 +99,13 @@ def measure_linear_probes(df, embeddings: np.ndarray) -> Dict[str, Any]:
 
     if len(classes) >= 2 and counts.min() >= 5:
         try:
-            clf = LogisticRegression(max_iter=2000, C=1.0, class_weight="balanced")
+            clf = LogisticRegression(
+                max_iter=max_iter,
+                C=1.0,
+                class_weight="balanced",
+                solver=solver,
+                multi_class=multi_class,
+            )
             cv = StratifiedKFold(n_splits=min(5, int(counts.min())), shuffle=True, random_state=0)
             from sklearn.model_selection import cross_val_score
 
@@ -112,7 +134,13 @@ def measure_linear_probes(df, embeddings: np.ndarray) -> Dict[str, Any]:
         X = np.vstack([embeddings[mask_a], embeddings[mask_v]])
         y = np.concatenate([np.zeros(n_a), np.ones(n_v)])
         try:
-            clf = LogisticRegression(max_iter=2000, C=1.0, class_weight="balanced")
+            clf = LogisticRegression(
+                max_iter=max_iter,
+                C=1.0,
+                class_weight="balanced",
+                solver=solver,
+                multi_class=multi_class,
+            )
             cv = StratifiedKFold(n_splits=min(5, n_a, n_v), shuffle=True, random_state=0)
             from sklearn.model_selection import cross_val_score
 
@@ -409,6 +437,9 @@ def run_all(
     checkpoint_path: Optional[Path],
     config_path: Optional[Path],
     device_str: Optional[str],
+    *,
+    probe_max_iter: int = 2000,
+    probe_solver: str = "lbfgs",
 ) -> Dict[str, Any]:
     t0 = time.time()
     df = load_rollout(rollout_path)
@@ -423,7 +454,12 @@ def run_all(
     }
 
     try:
-        summary["measurement_1_probes"] = measure_linear_probes(df, embeddings)
+        summary["measurement_1_probes"] = measure_linear_probes(
+            df,
+            embeddings,
+            max_iter=probe_max_iter,
+            solver=probe_solver,
+        )
     except Exception as exc:
         summary["measurement_1_probes"] = {"error": str(exc)}
 
@@ -455,6 +491,18 @@ def main():
     parser.add_argument("--config", type=str, default=None)
     parser.add_argument("--output", type=str, required=True)
     parser.add_argument("--device", type=str, default=None)
+    parser.add_argument(
+        "--probe-max-iter",
+        type=int,
+        default=2000,
+        help="sklearn LogisticRegression max_iter for M1 linear probes",
+    )
+    parser.add_argument(
+        "--probe-solver",
+        type=str,
+        default="lbfgs",
+        help="sklearn LogisticRegression solver for probes (e.g. lbfgs, saga)",
+    )
     args = parser.parse_args()
 
     rollout_path = Path(args.rollout)
@@ -463,7 +511,14 @@ def main():
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    summary = run_all(rollout_path, checkpoint_path, config_path, args.device)
+    summary = run_all(
+        rollout_path,
+        checkpoint_path,
+        config_path,
+        args.device,
+        probe_max_iter=args.probe_max_iter,
+        probe_solver=args.probe_solver,
+    )
     with output_path.open("w") as f:
         json.dump(summary, f, indent=2, default=float)
     print(f"[analyze] wrote {output_path}")

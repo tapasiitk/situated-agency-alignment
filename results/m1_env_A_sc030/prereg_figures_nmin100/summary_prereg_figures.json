@@ -1,0 +1,16 @@
+{
+  "single_run": {
+    "mode": "single_run",
+    "title_suffix": "m1_env_A_sc030 | seed 42",
+    "h1_pass_this_run": false,
+    "h2_seed_means": {
+      "cka_agg_vic": 0.011333872917540592,
+      "cka_agg_neutral": 0.01079010252474935,
+      "cka_vic_neutral": 0.00958359214876375,
+      "n_eligible_ckpts": 14
+    },
+    "h3_peak_lag_checkpoints": 4.0,
+    "h4_mean_grad_cos": -0.1059278373606503,
+    "fraction_ckpts_eligible_h2": 0.7
+  }
+}

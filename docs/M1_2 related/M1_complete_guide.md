@@ -341,6 +341,48 @@ Below is the full per-cell, per-seed loop.
 > cd ~/situated-agency-alignment && git checkout m1-pipeline && git pull && source .venv/bin/activate && export PYTHONPATH=.
 > ```
 
+### 8.0 Complete VM workflow (one checklist)
+
+Copy-paste sequence for **one** `(config, seed)` on **`tapsvmT4`**. This folds §7.1–§7.5 together with §8.2–§8.5.
+
+1. **SSH** → `ssh tapsvmT4`
+2. **Repo + branch** → `cd ~/situated-agency-alignment`, `git fetch origin`, `git checkout m1-pipeline`, `git pull origin m1-pipeline`, then **`git rev-parse HEAD`** (record in `docs/m1_reproducibility.md` run log).
+3. **Venv** → `source .venv/bin/activate`, `export PYTHONPATH=.`. Run `pip install -r requirements.txt` only after dependency changes.
+4. **Dirs** → `mkdir -p run_logs`. For rollout scratch: `sudo mkdir -p /mnt/karma_m1_scratch && sudo chown "$USER:$USER" /mnt/karma_m1_scratch` (see §7.2). Training creates `results/<cell>/checkpoints/` automatically.
+5. **W&B (optional)** → `wandb login` once; `export WANDB_MODE=online` for live dashboards (§7.4).
+6. **Train in tmux** (§7.5) — 4k episodes are long; avoid running training in a plain SSH shell. **Export** `CONFIG`, `SEED`, and `RESULTS_DIR` in the parent shell so the tmux pane inherits them (`SEED=123` alone is not visible to child processes unless exported).
+   ```bash
+   export CONFIG=configs/m1_env_A_sc030.yaml
+   export RESULTS_DIR=results/m1_env_A_sc030
+   export SEED=123
+   STEM=$(basename "$CONFIG" .yaml)
+   tmux new -s "${STEM}_s${SEED}_train"
+   ```
+   Inside tmux:
+   ```bash
+   cd ~/situated-agency-alignment && source .venv/bin/activate && export PYTHONPATH=.
+   WANDB_MODE=online python -u train_karma.py --config "$CONFIG" --mode baseline --seed "$SEED" \
+     2>&1 | tee "run_logs/${STEM}_s${SEED}_train.log"
+   ```
+   Detach: **Ctrl-b** then **d**. Reattach: `tmux attach -t "${STEM}_s${SEED}_train"`.
+6b. **Optional: auto-shutdown after training** — from your **SSH** shell (after training is running), start `scripts/auto_shutdown_watcher.sh` with a **regex anchored** to the real `python ... train_karma.py` line (see §7.6). Example:
+   ```bash
+   nohup bash scripts/auto_shutdown_watcher.sh \
+     "^python.*train_karma\.py.*${STEM}\.yaml.*--seed ${SEED}" \
+     "${STEM}_s${SEED}_post_train_shutdown" >/dev/null 2>&1 &
+   disown
+   ```
+7. **Batch trajectory** (after checkpoints exist):
+   ```bash
+   RESULTS_DIR=results/m1_env_A_sc030   # must match logging.local_results_dir in the YAML
+   M1_SCRATCH_ROOT=/mnt/karma_m1_scratch bash scripts/batch_m1_trajectory.sh \
+     "$CONFIG" "$RESULTS_DIR" "$SEED" 20
+   ```
+8. **Aggregate** → same as §8.4; `--analysis-dir` is `results/.../analysis/trajectory_${STEM}_baseline_seed${SEED}`.
+9. **Plot** → §8.5 (`plot_m1_trajectory.py`); optionally `scripts/plot_m1_confirmatory_figures.py` for preregistered-style panels.
+
+The same variable pattern works for any `configs/m1_env_A_sc*.yaml`; **confirmatory** cells use the five Env A YAMLs × seeds `[42, 123, 456]` (§8.6). A **fully expanded** bash block lives in `docs/m1_reproducibility.md` §“Full VM workflow”.
+
 ### 8.1 Smoke test (40 episodes, sanity check)
 This is fast; use after pulls or environment changes.
 
