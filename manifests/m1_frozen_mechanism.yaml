@@ -15,6 +15,9 @@ postprocess:
   analysis_script: scripts/analyze_checkpoint.py
   aggregate_script: scripts/aggregate_m1.py
   plot_script: scripts/plot_m1_mechanism_frozen_ecology.py
+  batch_keep_parquet_script: scripts/batch_m1_trajectory_keep_parquet.sh
+  batch_cleanup_parquet_script: scripts/batch_m1_trajectory.sh
+  scratch_root: /mnt/karma_m1_archive
   eval_episodes_per_checkpoint: 20
   late_start_episode: 2000
   n_min: 100
