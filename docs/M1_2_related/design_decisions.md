@@ -2,7 +2,7 @@
 
 **Document purpose:** Summary of methodological decisions, rationales, and action items arising from a full-day design review. Intended as a handover document for collaborators working on T1 (theory paper), M1 (empathy gap diagnostic), and M2/M2' (KARMA intervention papers).
 
-**Canonical status (2026-05-08):** This file is the single living design-decision record for the M1/M2 computational thread. Operational commands and run logs live in `docs/M1_2_related/M1_complete_guide.md`; the scientific order of operations, framing decisions, preregistration amendments, and publication dependencies live here. Older notes should link to this file, not to former flat or dated design-decision paths.
+**Canonical status (2026-05-08):** This file is the single living design-decision record for the M1/M2 computational thread. Operational commands and run logs live in `docs/M1_2_related/M0_M1_M2_replication_runbook.md`; the scientific order of operations, framing decisions, preregistration amendments, and publication dependencies live here. Older notes should link to this file, not to former flat or dated design-decision paths.
 
 ---
 

@@ -59,6 +59,10 @@ The project therefore separates three levels of evidence:
 The study order is fixed: **replicate aggression → freeze the ecology → test the
 transfer gap → only then evaluate CARMA**.
 
+For the complete novice-facing operational workflow, including VM scratch-space
+handling and the exact M0 → M1 → M2 order, see
+[`docs/M1_2_related/M0_M1_M2_replication_runbook.md`](docs/M1_2_related/M0_M1_M2_replication_runbook.md).
+
 ## Study Status
 
 | Stage | Question | Current status | Canonical artifact |
