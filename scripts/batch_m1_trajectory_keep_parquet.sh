@@ -30,6 +30,8 @@
 #   M1_SCRATCH_ROOT  override scratch parent (must be under /mnt unless
 #                    M1_ALLOW_NON_MNT_SCRATCH=1)
 #   M1_ALLOW_NON_MNT_SCRATCH=1  allow non-/mnt scratch paths (off by default)
+#   M1_POSTPROCESS_MODE baseline (default), karma, or broken; must match the
+#                    training mode used to name checkpoints.
 #
 # Output naming matches scripts/aggregate_m1.py:
 #   <config_stem>_<mode>_seed<seed>_ep<ep>.json
@@ -43,7 +45,14 @@ EVAL_EPISODES="${4:-20}"
 SINGLE_EP="${5:-}"
 
 CONFIG_STEM=$(basename "$CFG" .yaml)
-MODE=baseline
+MODE="${M1_POSTPROCESS_MODE:-baseline}"
+case "$MODE" in
+  baseline|karma|broken) ;;
+  *)
+    echo "[batch-keep] invalid M1_POSTPROCESS_MODE=$MODE (expected baseline, karma, or broken)" >&2
+    exit 2
+    ;;
+esac
 RUN_PREFIX="${CONFIG_STEM}_${MODE}_seed${SEED}"
 
 CKPT_DIR="${RESULTS_DIR}/checkpoints"
