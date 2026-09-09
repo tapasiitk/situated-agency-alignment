@@ -11,16 +11,13 @@ Modes:
     3. karma:    KARMA (Ethical Alignment: ZAP_AGENT ≈ BEING_ZAPPED)
 
 Usage:
-    python train_karma.py --config configs/env_harvest.yaml --mode karma --seed 42
+    python train_karma.py --config configs/env_harvest.yaml --mode karma
 """
 
 import argparse
 import csv
 import json
-import os
-import subprocess
 from pathlib import Path
-from typing import Optional
 from contextlib import nullcontext
 import yaml
 import torch
@@ -34,42 +31,6 @@ import torch.nn.functional as F
 
 from karmic_rl.envs.harvest_dual import HarvestDualEnv
 from karmic_rl.agents.karma_agent import KarmaAgent, KARMACollector
-
-REPO_ROOT = Path(__file__).resolve().parent
-
-
-def write_git_provenance(results_dir: Path, run_prefix: str) -> None:
-    """Record git HEAD next to run artifacts (best-effort; skips if not a git checkout)."""
-    try:
-        head = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            cwd=str(REPO_ROOT),
-            stderr=subprocess.DEVNULL,
-            text=True,
-        ).strip()
-        ref = subprocess.check_output(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=str(REPO_ROOT),
-            stderr=subprocess.DEVNULL,
-            text=True,
-        ).strip()
-    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
-        return
-    if not head:
-        return
-    path = results_dir / f"git_provenance_{run_prefix}.txt"
-    path.write_text(
-        "\n".join(
-            [
-                f"git_commit_sha={head}",
-                f"git_branch={ref}",
-                f"repo_root={REPO_ROOT}",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
 
 # ----------------------------------------------------------------
 # PPO Utilities
@@ -148,7 +109,7 @@ def sanitize_logits(logits: torch.Tensor) -> torch.Tensor:
 # Main Training Loop
 # ----------------------------------------------------------------
 
-def train(config_path, mode, seed):
+def train(config_path, mode, seed=42):
     # Load config
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
@@ -177,7 +138,6 @@ def train(config_path, mode, seed):
     summary_path = results_dir / f"{run_prefix}.json"
     checkpoint_dir = results_dir / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    write_git_provenance(results_dir, run_prefix)
     update_every = int(config.get("training", {}).get("update_every", 10))
     checkpoint_interval = int(log_cfg.get("checkpoint_interval", 0))
     log_interval = int(log_cfg.get('log_interval', 20))
@@ -582,38 +542,12 @@ def train(config_path, mode, seed):
             wandb.finish()
 
 
-def _resolve_seed(cli_seed: Optional[str], parser: argparse.ArgumentParser) -> int:
-    """
-    Seed must come from CLI or the process environment — no hard-coded numeric default.
-
-    Order: non-empty --seed, then env SEED, then TRAIN_SEED. This covers tmux panes where
-    ``--seed "$SEED"`` expanded empty but ``export SEED=`` was still applied in *this* shell.
-    """
-    if cli_seed is not None and str(cli_seed).strip() != "":
-        return int(cli_seed)
-    for key in ("SEED", "TRAIN_SEED"):
-        env_val = os.environ.get(key)
-        if env_val is not None and str(env_val).strip() != "":
-            return int(env_val)
-    parser.error(
-        "need a seed: pass --seed N, or export SEED=N in the same shell that runs Python "
-        "(in tmux: run `export SEED=N` inside the pane, or `echo \"$SEED\"` / "
-        "`python -c \"import os; print(os.environ.get('SEED'))\"` to verify)."
-    )
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/env_harvest.yaml", help="Path to config")
     parser.add_argument("--mode", type=str, required=True, choices=["baseline", "broken", "karma"], help="Experiment mode")
-    parser.add_argument(
-        "--seed",
-        type=str,
-        default=None,
-        help="Integer seed, or omit and set env SEED (no built-in default number)",
-    )
-
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    
     args = parser.parse_args()
-    seed = _resolve_seed(args.seed, parser)
-
-    train(args.config, args.mode, seed)
+    
+    train(args.config, args.mode, args.seed)

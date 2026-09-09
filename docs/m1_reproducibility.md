@@ -7,8 +7,7 @@ This file is the **single place** to record how M1 results were produced so anyo
 | Item | Location | Notes |
 |------|----------|--------|
 | Training & env hyperparameters | `configs/m1_*.yaml`, `configs/m1_base.yaml` | Must match the run you analyze. |
-| **Git commit used for training** | `results/<cell>/git_provenance_<run_prefix>.txt` | Written at **train** start by `train_karma.py` (`run_prefix` = e.g. `m1_env_A_sc030_baseline_seed42`). Also log the SHA in **this** file for paper trail. |
-| Training entrypoint | `train_karma.py` | **No built-in numeric default.** Pass `--seed N` and/or set env **`SEED`** (same shell as `python`; see tmux note below). |
+| Training entrypoint | `train_karma.py` | `--config`, `--mode`, `--seed` define the run id. |
 | Rollout / analysis / aggregation | `scripts/rollout_from_checkpoint.py`, `scripts/analyze_checkpoint.py`, `scripts/aggregate_m1.py` | Deterministic given checkpoint + seed in rollout script. |
 | Batch driver | `scripts/batch_m1_trajectory.sh` | Orchestrates rollout → analyze for checkpoints `200:200:4000`. |
 | Smoke test (CI-style) | `scripts/m1_smoke.sh` | Short end-to-end check. |
@@ -34,93 +33,9 @@ Record the **git commit** you used for a paper run:
 git rev-parse HEAD
 ```
 
-## Full VM workflow (venv, tmux, git, dirs, commands)
-
-Use this as a **single checklist** on the NC VM (paths below match `docs/M1_complete_guide.md` §7: repo `~/situated-agency-alignment`, alias `tapsvmT4`). Adjust `CONFIG`, `RESULTS_DIR`, `SEED`, and branch if needed.
-
-**Seeds in tmux:** After `tmux new`, run `echo "$SEED"` in the **training pane**. If it is empty, you attached to a stale session or the variable was never in that pane’s environment — run `export SEED=123` again there, or use a literal `--seed 123`. `train_karma.py` accepts `--seed N` **or** reads integer env `SEED` / `TRAIN_SEED` when argv `--seed` is absent or empty (still **no** built-in default number).
-
-```bash
-# --- SSH ---
-ssh tapsvmT4
-
-# --- Repo + branch (pull before long runs) ---
-cd ~/situated-agency-alignment
-git fetch origin
-git checkout m1-pipeline    # or the branch you intend to freeze for M1
-git pull origin m1-pipeline
-git rev-parse HEAD          # append this SHA + date to the run log at end of this doc
-
-# --- Python venv ---
-source .venv/bin/activate
-export PYTHONPATH=.
-# pip install -r requirements.txt   # only after pulling dependency changes
-
-# --- Directories ---
-mkdir -p run_logs
-# Rollout scratch (large parquets); recreate after VM deallocate if needed:
-sudo mkdir -p /mnt/karma_m1_scratch && sudo chown "$USER:$USER" /mnt/karma_m1_scratch
-
-# --- Weights & Biases (optional online dashboard) ---
-# wandb login   # once per VM user
-export WANDB_MODE=online
-
-# --- Knobs for this cell/seed (must be exported: tmux starts a child shell that only inherits the environment) ---
-export CONFIG=configs/m1_env_A_sc030.yaml
-export RESULTS_DIR=results/m1_env_A_sc030
-export SEED=123
-STEM=$(basename "$CONFIG" .yaml)
-TAG="${STEM}_s${SEED}"
-
-# --- 1) Train (4000 ep); use tmux so SSH drops do not kill the job ---
-tmux new -s "${TAG}_train"
-# Inside the new shell:
-cd ~/situated-agency-alignment && source .venv/bin/activate && export PYTHONPATH=.
-# If `echo "$SEED"` is empty, export again in this pane: export SEED=123
-WANDB_MODE=online python -u train_karma.py --config "$CONFIG" --mode baseline --seed "$SEED" \
-  2>&1 | tee "run_logs/${TAG}_train.log"
-# Detach: Ctrl-b then d. Reattach: tmux attach -t "${TAG}_train"
-# Optional auto-shutdown when training exits: see note immediately after this code block.
-
-# --- 2) Rollout + analyze all checkpoints (after training finishes) ---
-tmux new -s "${TAG}_post"
-cd ~/situated-agency-alignment && source .venv/bin/activate && export PYTHONPATH=.
-M1_SCRATCH_ROOT=/mnt/karma_m1_scratch bash scripts/batch_m1_trajectory.sh \
-  "$CONFIG" "$RESULTS_DIR" "$SEED" 20
-
-# --- 3) Aggregate ---
-python scripts/aggregate_m1.py \
-  --analysis-dir "${RESULTS_DIR}/analysis/trajectory_${STEM}_baseline_seed${SEED}" \
-  --training-dir "$RESULTS_DIR" \
-  --output "${RESULTS_DIR}/aggregated_${STEM}_baseline_seed${SEED}.csv"
-
-# --- 4) Figures (exploratory trajectory panels) ---
-python scripts/plot_m1_trajectory.py \
-  --csv "${RESULTS_DIR}/aggregated_${STEM}_baseline_seed${SEED}.csv" \
-  --out "${RESULTS_DIR}/plots_seed${SEED}"
-
-# --- 5) Figures (OSF-style confirmatory panels; optional) ---
-python scripts/plot_m1_confirmatory_figures.py \
-  --csv "${RESULTS_DIR}/aggregated_${STEM}_baseline_seed${SEED}.csv" \
-  --out "${RESULTS_DIR}/prereg_figures_seed${SEED}"
-```
-
-**Auto-shutdown (optional, VM cost control):** After `train_karma.py` is running, run this from your **SSH** shell (not inside the training tmux pane) so `pgrep` matches the **python** process. Anchor the pattern as below so the watcher does not latch onto tmux or `bash` (see `scripts/auto_shutdown_watcher.sh` and `docs/M1_complete_guide.md` §7.6). Requires passwordless `sudo shutdown` on the VM; cancel with `sudo shutdown -c`.
-
-```bash
-nohup bash scripts/auto_shutdown_watcher.sh \
-  "^python.*train_karma\.py.*${STEM}\.yaml.*--seed ${SEED}" \
-  "${TAG}_post_train_shutdown" >/dev/null 2>&1 &
-disown
-```
-
-**Copy aggregated CSV to Mac** (example — see §5): `scp` … then run steps 4–5 locally if you prefer.
-
-The numbered sections **§1–§5** below are the same phases with minimal duplication; **`docs/M1_complete_guide.md` §8.0** mirrors this checklist with more VM-specific notes.
-
 ## 1. Train (produces checkpoints + training CSV)
 
-Example: Env A, scarcity 0.30, baseline, seed 42 (results dir comes from the config’s `logging.local_results_dir`). Pass **`--seed`** and/or set env **`SEED`** (no built-in default number).
+Example: Env A, scarcity 0.30, baseline, seed 42 (results dir comes from the config’s `logging.local_results_dir`).
 
 ```bash
 python train_karma.py \

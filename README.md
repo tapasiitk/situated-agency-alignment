@@ -1,305 +1,265 @@
-# Situated Agency Alignment
+# KARMA: Knowledge Acquisition via Role-Invariant Mirror Architecture
 
-**CARMA — Cross-Role Alignment of Representations in Multi-Agent Systems**
+> **Emergent Ethical Alignment in Multi-Agent Reinforcement Learning via Role-Invariant Representation Learning**
 
-A contrastive cross-role representation-binding intervention, with mechanism
-probes for multi-agent reinforcement learning under resource conflict.
+> *"I do not harm you, because I know what harm feels like."*
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg)](https://pytorch.org/)
-[![PettingZoo](https://img.shields.io/badge/PettingZoo-1.24%2B-6A5ACD.svg)](https://pettingzoo.farama.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=flat&logo=PyTorch&logoColor=white)](https://pytorch.org/)
+[![Paper](https://img.shields.io/badge/Paper-PDF-red.svg)](./ethical_agentic_AI.pdf)
+[![PettingZoo](https://img.shields.io/badge/PettingZoo-Multi%20Agent-blueviolet)](https://pettingzoo.farama.org/)
+[![WandB](https://img.shields.io/badge/WandB-Dashboard-gold.svg?logo=weightsandbiases)](https://api.wandb.ai/links/ratht-iitk/q7ethgj4)
 
-> **Evidence boundary:** M0 is a completed two-seed behavioral ecology gate.
-> M1 is a two-seed mechanism pilot. The five-seed M1 confirmation and all M2
-> intervention comparisons are pending. No current result establishes that
-> CARMA reduces aggression, improves cooperation, or preserves capability.
 
-## Overview
 
-This repository asks a mechanism-level alignment question: when one recurrent
-policy experiences both sides of a harmful interaction, does value information
-learned while the policy is harmed transfer into restraint when the same policy
-occupies the aggressor role?
+## 🧠 The Core Problem
 
-CARMA tests one possible intervention. It adds a Siamese projector to a shared
-PPO-LSTM actor-critic and binds representations of `ZAP_AGENT` (causing harm)
-and `BEING_ZAPPED` (receiving harm). The working hypothesis is that explicit
-cross-role binding may allow victim-side value information to influence
-aggression-related policy updates. This is a testable hypothesis, not an
-established property of the architecture.
+Standard Deep Reinforcement Learning (DRL) agents in multi-agent environments systematically converge to **aggressive Nash equilibria** when resources are scarce. In the canonical Harvest commons game, agents learn to use their primary tool (a beam weapon) not only for cooperative resource management but also for competitive exclusion, leading to mutual destruction and commons collapse.
 
-The repository is the agent-side computational component of a broader Situated
-Agency Alignment programme. The human-side programme studies **calibrated
-agency**: whether felt authorship remains appropriately coupled to effective
-influence, awareness of a system's contribution, genuine options, and usable
-opportunities for correction. Its safety concern is the **Proxy Agency Safety
-Shield**: a personalized agent's actions may feel self-authored even when that
-fluency delays error detection or intervention. The code here does not test
-that human-side claim; it first isolates an agent-side mechanism in a controlled
-multi-agent commons.
+**Root Cause:** Standard convolutional encoders treat logically symmetric social interactions as pixel-wise disjoint states:
+- **"I attack a rival"** → latent vector z_agg
+- **"I am attacked"** → latent vector z_vic
 
-## Research Question
+These representations are **orthogonal** (unrelated). Negative feedback from victimization does not modulate the policy for aggression because the agent perceives itself as existing in two separate "predator" and "prey" state spaces. We call this the **Empathy Gap**.
 
-In a resource-constrained commons, instrumental aggression can emerge even
-when harming another agent receives no direct reward. CARMA investigates a
-candidate **cross-role transfer gap**:
+## 🪞 Our Solution: KARMA
 
-- the policy receives negative value information when it is harmed;
-- the same policy can later act as the aggressor; but
-- victim-side value gradients may not spontaneously align with the gradients
-  that would reduce aggression.
+KARMA (**K**nowledge **A**cquisition via **R**ole-invariant **M**irror **A**rchitecture) augments recurrent DRL agents with a **Siamese projector head** trained via contrastive loss to align structurally symmetric interactions:
 
-The project therefore separates three levels of evidence:
-
-1. **Ecology:** does the environment produce sustained instrumental aggression?
-2. **Mechanism:** is cross-role value transfer weak in the baseline policy?
-3. **Intervention:** does changing the representation or credit route alter both
-   the proposed mechanism and behavior without destroying useful performance?
-
-The study order is fixed: **replicate aggression → freeze the ecology → test the
-transfer gap → only then evaluate CARMA**.
-
-## Study Status
-
-| Stage | Question | Current status | Canonical artifact |
-|---|---|---|---|
-| **M0: ecology calibration** | Can Env A sustain instrumental zapping without direct zap reward or victim penalty? | Completed as a two-seed behavioral gate; candidate H is frozen for M1 and M2. | [`manifests/m0_ecology_calibration.yaml`](manifests/m0_ecology_calibration.yaml) |
-| **M1: baseline mechanism** | Under the frozen ecology, are aggressor/victim states separable, and does victim-side value feedback transfer into aggression-control updates? | Two-seed pilot only; five-seed confirmation is pending. | [`summary_m1_mechanism.json`](results/synced_external/m0_gate_H/m1_pilot_figures_seed42_123/summary_m1_mechanism.json) |
-| **M2: mechanism discrimination** | Do meaningful role binding, scrambled binding, and direct credit routing produce different transfer, behavior, and capability profiles? | CARMA is configured. The current scrambled control must be corrected for Env A; direct routing is planned but not implemented. No confirmatory result exists. | [`manifests/m2_intervention.yaml`](manifests/m2_intervention.yaml) |
-
-## M0: Frozen Ecology
-
-M0 used behavioral measures only to select Env A candidate H:
-
-```text
-num_agents=6
-apple_density=0.30
-regrowth_speed=0.75
-zap_timeout=25
-zap_agent_reward=0.0
-victim_penalty=0.0
-waste/cleanup disabled
+```
+L_KARMA = E[(f_θ(o_agg) - f_θ(o_vic))²]
 ```
 
-Across seeds 42 and 123, the selected cell sustained late-window violence
-without complete harvest collapse. Mean late violence was `0.0089` per
-agent-step, mean final violence was `0.0129`, and mean late return was `8.17`
-apples per agent.
+By forcing the aggressor and victim views into the same latent embedding, the value function naturally learns that **harm is bad regardless of role**. Ethical behavior emerges from representational geometry, not explicit rules.
 
-![M0 candidate H behavioral gate](docs/assets/readme/m0_gate_h_behavioral_gate.png)
+## 🔬 The Mirror Test: Three Conditions
 
-This is a behavioral gate, not a test of CARMA. Representation probes and
-intervention outcomes were not used to choose the ecology.
+We evaluate KARMA in a novel **Dual-Use Zap** variant of Harvest where the primary action serves both:
+- **Cooperative:** ZAP → Waste (removes obstacles, enables apple regrowth)
+- **Competitive:** ZAP → Agent (temporarily freezes rivals, monopolizes resources)
 
-## M1: Frozen-Ecology Pilot
+| Condition | Architecture | Contrastive Pairing | Expected Outcome |
+|-----------|--------------|-------------------|------------------|
+| **Baseline** | Standard DRQN | None | High Violence + High Cooperation → Low Yield (Tragedy) |
+| **Broken Mirror** | DRQN + Siamese | ZAP_AGENT ≈ ZAP_WASTE | Violence ≈ Cooperation → Semantic Confusion → Lower Yield |
+| **KARMA** | DRQN + Siamese | ZAP_AGENT ≈ BEING_ZAPPED | Violence ↓ Cooperation ↑ → Selective Ethics |
 
-The public M1 pilot uses two baseline seeds, three late checkpoints per seed
-(`3200`, `3600`, and `4000`), 20 evaluation episodes per checkpoint, and
-`n_min=100` for eligible aggressor/victim comparisons.
-
-![M1 pilot H1 and H2](docs/assets/readme/m1_pilot_h1_h2.png)
-
-| Diagnostic | Pilot mean | 95% bootstrap interval over seed means | Bounded interpretation |
-|---|---:|---:|---|
-| H1 aggressor-victim probe AUROC | `0.420` | `[0.409, 0.431]` | Does not support strong linear separability in this pilot. |
-| H2 cross-role gradient-transfer cosine | `0.017` | `[-0.009, 0.043]` | Consistent with weak or absent direct gradient transfer and motivates an intervention test. |
-
-![M1 H2 gradient-transfer seed means](docs/assets/readme/m1_h2_gradient_transfer_seedmeans.png)
-
-These results have important limits:
-
-- H1 does not show that aggressor and victim states are identical, orthogonal,
-  or generally inseparable. The initial probe pools perceptually similar
-  contexts, uses a linear readout, and may distribute victim-state information
-  across the timeout window. H1 remains inconclusive pending corrected probes.
-- H2 is a diagnostic association, not a causal demonstration. A near-zero
-  cosine does not establish that missing transfer causes aggression.
-- With only two seeds, neither estimate is confirmatory. The preregistered next
-  step is the five-seed baseline run under the same frozen ecology and analysis
-  rules.
-
-## M2: CARMA and Competing Mechanisms
-
-The implemented CARMA condition uses a representation-binding loss between
-batch centroids for the aggressor and victim roles:
-
-```text
-encoder → Siamese projector → PPO-LSTM actor-critic
-                         ↘ role-binding loss
-
-CARMA: ZAP_AGENT ↔ BEING_ZAPPED
-```
-
-The final mechanism-discrimination design should compare four arms under the
-same frozen ecology, seed set, training budget, and evaluation pipeline:
-
-| Arm | Intervention | Diagnostic purpose | Repository status |
-|---|---|---|---|
-| **Baseline** | No representation-binding loss | Estimates spontaneous cross-role transfer and behavior. | Implemented |
-| **Meaningful binding (CARMA)** | Bind `ZAP_AGENT` to `BEING_ZAPPED` | Tests whether semantically matched cross-role binding changes transfer and behavior. | Configured; not yet tested confirmatorily |
-| **Scrambled binding** | Apply a frequency- and scale-matched binding to a semantically unrelated event available in Env A, such as `APPLE_EATEN` | Separates semantic specificity from generic regularization or representation compression. | Planned correction |
-| **Direct credit routing** | Route victim-side cost into aggression-related updates without mirror binding | Separates a representation-binding account from a credit-assignment account. | Planned; not implemented |
-
-The pattern across arms matters more than a single headline metric:
-
-- If meaningful binding changes both transfer and harmful behavior while the
-  scrambled arm does not, that supports semantic specificity.
-- If meaningful and scrambled binding perform similarly, the role-relational
-  interpretation is weakened.
-- If direct routing changes behavior without comparable representational
-  convergence, the main bottleneck may be credit assignment.
-- If aggression falls only because task reward, sustainability, coordination,
-  or adaptation collapses, the intervention has not demonstrated useful
-  alignment.
-- If an internal overlap or transfer metric improves while harmful behavior
-  returns, the metric has decoupled from the behavior it was meant to track.
-
-### Current implementation boundary
-
-The existing `broken` mode binds `ZAP_AGENT` to `ZAP_WASTE`, but the frozen Env
-A ecology disables waste events. That condition is therefore not a valid
-scrambled control for confirmatory Env A experiments. The config is retained as
-an implementation placeholder and for the future dual-use Env B/M2′ branch; it
-should not be interpreted as a completed control.
-
-A direct actor-side penalty may be useful as an additional behavioral benchmark,
-but it is not equivalent to direct credit routing. Any such benchmark should be
-separately configured, preregistered, and evaluated for both harm reduction and
-capability cost.
-
-## Evaluation
-
-Behavioral and mechanism-level measures should be reported together:
-
-- `ViolenceRate_per_agent_step` and `BeingZappedRate_per_agent_step`;
-- apple consumption, average return, and sustainability;
-- aggressor/victim role-event counts and probe eligibility;
-- cross-role gradient-transfer cosine;
-- pre/post representation diagnostics;
-- coordination, adaptation, and held-out-ecology generalization; and
-- intervention cost or capability loss.
-
-No internal alignment metric is treated as sufficient evidence without a
-corresponding behavioral test, and no behavioral reduction in harm is treated
-as sufficient if it is explained by reward suppression or capability collapse.
-
-## Reproducing the Current Public Paths
-
-Clone and install:
+## 🛠️ Installation & Quick Start
 
 ```bash
+# Clone repo
 git clone https://github.com/tapasiitk/situated-agency-alignment.git
 cd situated-agency-alignment
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-Run the selected M0 ecology cell:
+### Run the Mirror Test
 
 ```bash
-python train_karma.py \
-  --config configs/stage0_env_A_H_n6_ad030_rg075_zt25.yaml \
-  --mode baseline \
-  --seed 42
+# Terminal 1: Baseline (standard DRQN)
+python train_karma.py --config configs/env_harvest.yaml --mode baseline
+
+# Terminal 2: Broken Mirror (semantic ablation control)
+python train_karma.py --config configs/env_harvest.yaml --mode broken
+
+# Terminal 3: KARMA (ethical role-invariance)
+python train_karma.py --config configs/env_harvest.yaml --mode karma
 ```
 
-Run an M1 baseline seed under the frozen ecology:
+Monitor results in **Weights & Biases**: [wandb.ai](https://wandb.ai)
+
+Expected runtime: ~8 hours per condition on NVIDIA RTX 3090.
+
+## Phase A: Canonical Baseline Replication
+
+Use this first before any environment extension or KARMA analysis.
 
 ```bash
-python train_karma.py \
-  --config configs/m1_env_A_frozen_n6_ad030_rg075_zt25.yaml \
-  --mode baseline \
-  --seed 42
+python train_karma.py --config configs/canonical_baseline.yaml --mode baseline --seed 42
 ```
 
-Run the configured CARMA condition for development or preregistration checks.
-The current command-line mode remains `karma` for backward compatibility:
+- VM/private-repo setup + sweep commands: [`docs/canonical_baseline_vm_guide.md`](docs/canonical_baseline_vm_guide.md)
+- Local artifacts are saved as CSV/JSON under `results/canonical_baseline/`
 
-```bash
-python train_karma.py \
-  --config configs/m2_intervention/m2_env_A_frozen_n6_ad030_rg075_zt25_karma.yaml \
-  --mode karma \
-  --seed 42
+## M1 trajectory (train → rollout → analyze → aggregate → plots)
+
+- **Plain-language walkthrough** (analogies + files): [`docs/m1_in_plain_words.md`](docs/m1_in_plain_words.md).
+- End-to-end commands, artifact layout, and a **run log** to append after each stage: [`docs/m1_reproducibility.md`](docs/m1_reproducibility.md).
+- Protocol & preregistration detail (P1–P5, `n_min`, amendments): [`docs/m1_experimental_guideline.md`](docs/m1_experimental_guideline.md).
+
+## 📂 Project Structure
+
 ```
-
-Do not treat a single run as confirmatory. The study manifests define the seed
-sets, checkpoint cadence, evaluation budget, and analysis thresholds.
-
-Postprocessing entry points:
-
-- [`scripts/rollout_from_checkpoint.py`](scripts/rollout_from_checkpoint.py)
-- [`scripts/analyze_checkpoint.py`](scripts/analyze_checkpoint.py)
-- [`scripts/aggregate_m1.py`](scripts/aggregate_m1.py)
-- [`scripts/plot_m0_ecology_calibration.py`](scripts/plot_m0_ecology_calibration.py)
-- [`scripts/plot_m1_mechanism_frozen_ecology.py`](scripts/plot_m1_mechanism_frozen_ecology.py)
-
-## Repository Map
-
-```text
 situated-agency-alignment/
 ├── karmic_rl/
-│   ├── envs/harvest_dual.py        # PettingZoo commons environment
-│   └── agents/karma_agent.py       # CNN/projector/PPO-LSTM policy
-├── train_karma.py                  # Training entry point
+│   ├── envs/
+│   │   └── harvest_dual.py          # Dual-Use Zap environment
+│   └── agents/
+│       └── karma_agent.py           # Siamese projector + PPO agent
+├── train_karma.py                   # Main training script (all 3 conditions)
 ├── configs/
-│   ├── m0_ecology_calibration/     # M0 configuration view
-│   ├── m1_frozen_mechanism/        # M1 configuration view
-│   └── m2_intervention/            # M2 intervention configs
-├── manifests/                      # Stage-level run specifications
-├── scripts/                        # Rollout, analysis, aggregation, plotting
-├── docs/
-│   ├── meta/                       # Human-side theory artifacts
-│   ├── M1_2_related/               # Computational design records
-│   └── assets/readme/              # Figures shown in this README
-└── results/                        # Lightweight summaries and figures
+│   └── env_harvest.yaml             # Hyperparameters (grid, agents, rewards)
+├── ethical_agentic_AI.pdf           # Full academic paper (PDF)
+├── requirements.txt                 # Dependencies
+└── README.md                        # This file
 ```
 
-Large checkpoints and rollout files are intentionally excluded from version
-control. Public summaries, final figures, manifests, and analysis code define
-the lightweight reproducibility record.
+## 🔧 Configuration
 
-## Roadmap
+Edit `configs/env_harvest.yaml`:
 
-Near-term priorities:
+```yaml
+env:
+  grid_size: 15                      # 15×15 grid
+  num_agents: 6                      # N=6 agents
+  max_steps: 1000                    # Episode length
+  apple_density: 0.65                # Scarcity forces dilemma
+  zap_waste_reward: 0.3              # Cooperative incentive (> violence 0.1)
+  
+training:
+  episodes: 10000                    # 10k episodes per condition
+  ppo_epochs: 4                      # PPO update epochs
+  batch_size: 64                     # Contrastive batch size
+  lr: 3e-4                           # Learning rate
+  gamma: 0.99                        # Discount factor
+  contrastive_weight: 0.1            # KARMA loss weight λ
+```
 
-- complete the five-seed M1 baseline confirmation under the frozen ecology;
-- correct the Env A scrambled-binding condition and document how intervention
-  frequency and scale are matched;
-- implement the direct credit-routing diagnostic;
-- preregister and run the four-arm M2 comparison;
-- measure transfer, harm, reward, sustainability, coordination, and adaptation
-  jointly; and
-- test generalization in held-out ecologies and after annealing or removing the
-  binding loss.
+## 📈 Metrics
 
-Longer-term extensions include plural-value settings, asymmetric roles,
-norm-formation and cultural-transmission dynamics, the dual-use Env B/M2′
-selective-suppression study, and human experiments on personalization,
-authorship, reliance calibration, error detection, and override behavior.
+We track four metrics per episode:
 
-## What to Read First
+- **Violence Rate:** ZAP_AGENT events (lower is better)
+- **Cooperation Rate:** ZAP_WASTE events (higher is better)  
+- **System Yield:** Total apples consumed per agent (reflects sustainability)
+- **Ethical Selectivity:** Ratio of cooperation to violence (KARMA achieves 8.3× baseline)
 
-- Theory frame: [`docs/meta/T1_proxy_agency_moral_shieldv3_minds_machines.pdf`](docs/meta/T1_proxy_agency_moral_shieldv3_minds_machines.pdf)
-- Living computational design record: [`docs/M1_2_related/design_decisions.md`](docs/M1_2_related/design_decisions.md)
-- M0 calibration protocol: [`docs/M1_2_related/M0_behavioral_ecology_calibration.md`](docs/M1_2_related/M0_behavioral_ecology_calibration.md)
-- M1 refactor handoff: [`docs/M1_2_related/M1_KT_ecology_mechanism_refactor.md`](docs/M1_2_related/M1_KT_ecology_mechanism_refactor.md)
-- Results layout: [`results/README.md`](results/README.md)
+## 🧬 Architecture Details
 
-## Citation
+```
+CNN (32-64-128 filters)
+    ↓
+Siamese Projector f_θ (MLP: 256→128→64)
+    ↓
+LSTM (hidden_dim=256)
+    ↓
+Actor Head (Policy π) + Value Head (V)
+```
+
+**Training Loss:**
+```
+L_total = L_PPO + λ L_KARMA + β L_role
+```
+
+where λ=0.1 (contrastive weight), β=0.1 (auxiliary role loss).
+
+## 📖 Citation
+
+If you use this code or paper, please cite:
 
 ```bibtex
-@misc{rath2026situatedAgencyAlignment,
-  title  = {Situated Agency Alignment: CARMA and Cross-Role Value Transfer in Multi-Agent Reinforcement Learning},
-  author = {Rath, Tapas Ranjan},
-  year   = {2026},
-  note   = {Research code and pilot results},
-  url    = {https://github.com/tapasiitk/situated-agency-alignment}
+@article{rath2025karma,
+  title={Emergent Ethical Alignment in Multi-Agent Reinforcement Learning 
+         via Role-Invariant Representation Learning},
+  author={Rath, Tapas Ranjan},
+  journal={in preparation},
+  year={2025},
+  url={https://github.com/tapasiitk/situated-agency-alignment}
 }
 ```
 
-## Maintainer
+## 💡 Key Insights
 
-**Tapas Ranjan Rath** — [research profile](https://tapasiitk.github.io/)
+1. **The Empathy Gap is representational:** Agents fail to generalize "harm is bad" across roles because standard encoders keep aggressor/victim views disjoint.
 
-## License
+2. **Semantic correctness matters:** Adding architectural capacity (Broken Mirror) is insufficient. Contrastive pairs must be semantically grounded (role-symmetric).
 
-MIT License. See [`LICENSE`](LICENSE).
+3. **Ethics emerges from geometry:** By aligning representations, the value function naturally propagates aversion to harm-infliction, regardless of role.
+
+4. **No explicit rules needed:** KARMA uses no reward shaping, hard constraints, or dense human supervision—only the environment's causal structure.
+
+## 🌍 Broader Implications
+
+- **Human-AI Collaboration:** KARMA agents may generalize better to multi-stakeholder settings where perspective-taking is valuable.
+- **Adversarial Robustness:** Symmetric representations provide intrinsic regularization (attackers cannot exploit privileges one role lacks).
+- **Transfer Learning:** Role-invariant embeddings may transfer to new domains where symmetry exists.
+
+## 📚 Related Work
+
+- **Sequential Social Dilemmas:** Leibo et al. (2017) - foundational Harvest/Cleanup games
+- **Contrastive Learning:** Chen et al. (2020) SimCLR, He et al. (2020) MoCo
+- **Moral AI:** Neufeld (2022), Hadfield-Menell et al. (2016), ethical RL frameworks
+
+## ⚠️ Limitations & Future Work
+
+### Current Limitations
+- Assumes symmetric harm (A ↔ B reciprocal)
+- Tested on closed-world Harvest domain only
+- Requires manual social event logs for pair specification
+
+### Future Directions
+- Asymmetric power dynamics and role hierarchies
+- Open-ended environments with novel harm types
+- Autonomous pair inference from pixels
+- Human user studies on "agency"
+- Scaling to 10+ agents and larger grids
+
+## 🤝 Contributing
+
+Contributions welcome! Please open issues or PRs for:
+- Bug fixes
+- Experimental improvements
+- Scalability enhancements
+- New dual-use domains
+- Visualization tools
+
+## 📜 License
+
+MIT License — See `LICENSE` file
+
+---
+
+## Quick Experiment Guide
+
+### 1. Start Training
+
+```bash
+# Run all 3 conditions in parallel
+python train_karma.py --config configs/env_harvest.yaml --mode baseline &
+python train_karma.py --config configs/env_harvest.yaml --mode broken &
+python train_karma.py --config configs/env_harvest.yaml --mode karma &
+```
+
+### 2. Monitor Progress
+
+Open wandb dashboard:
+```
+wandb login
+# Follow URL in browser
+```
+
+### 3. Expected Timeline
+
+- **Episodes 0-1,000:** All conditions show exploration
+- **Episodes 1,000-2,000:** Baseline violence increases; Broken Mirror shows confusion
+- **Episodes 2,000-5,000:** KARMA violence collapses, cooperation stabilizes
+- **Episodes 5,000-10,000:** KARMA maintains stable ethical equilibrium
+
+### 4. Analyze Results
+
+```bash
+# After training completes
+python scripts/plot_results.py --wandb-entity <your-entity> --wandb-project karma-mirror-test
+```
+
+---
+
+**Made with ❤️ for aligned AI systems**
+
+*For questions, open an issue or contact: [github.com/tapasiitk](https://github.com/tapasiitk)*
+
+**Status:** Pre-release (experiments in progress)
+**Last Updated:** December 2025
